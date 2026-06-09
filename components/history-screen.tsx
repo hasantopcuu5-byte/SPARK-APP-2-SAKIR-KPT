@@ -60,19 +60,18 @@ export function HistoryScreen({ user, onBack }: { user: User; onBack: () => void
         ) : (
           <div className="flex flex-col gap-6">
             {records.map((record) => {
-              // Bu kısımlar her bir geçmiş kayıt için sayıları hesaplar
-              const totalCount = record.items.length
-              const okCount = record.items.filter((i) => i.status === "ok").length
-              const defCount = record.items.filter((i) => i.status === "deficiency").length
-              const obsCount = record.items.filter((i) => i.status === "observation").length
-              const checkedCount = record.items.filter((i) => i.status !== "select").length
-              const photosCount = record.items.reduce((sum, i) => sum + (i.photos?.length || 0), 0)
+              // Kayıtlı öğeleri sayıyoruz
+              const items = record.items || []
+              const totalCount = items.length
+              const okCount = items.filter((i: any) => i.status === "ok").length
+              const defCount = items.filter((i: any) => i.status === "deficiency").length
+              const obsCount = items.filter((i: any) => i.status === "observation").length
+              const checkedCount = items.filter((i: any) => i.status !== "select").length
+              const photosCount = items.reduce((sum: number, i: any) => sum + (i.photos?.length || 0), 0)
 
               return (
-                <Card
-                  key={record.id}
-                  className="overflow-hidden p-0 transition-all hover:shadow-md"
-                >
+                <Card key={record.id} className="overflow-hidden p-0 transition-all hover:shadow-md mb-4">
+                  {/* Üst Kısım: Orijinal Gemi, Kaptan ve Tarih Bilgileri */}
                   <div className="p-4 pb-0">
                     <div className="flex items-start justify-between gap-4 mb-3">
                       <div className="flex-1">
@@ -100,8 +99,8 @@ export function HistoryScreen({ user, onBack }: { user: User; onBack: () => void
                     </div>
                   </div>
 
-                  {/* Şık İstatistik Kartları (Summary Bar) Burada Çıkacak */}
-                  <div className="bg-secondary/10 py-3 border-t overflow-hidden">
+                  {/* Alt Kısım: İstatistik Kartları (SummaryBar) */}
+                  <div className="bg-secondary/10 py-3 border-t overflow-hidden mt-3">
                     <SummaryBar
                       total={totalCount}
                       checked={checkedCount}
