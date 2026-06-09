@@ -4,6 +4,8 @@ export type User = {
   username: string
   password: string
   role: "admin" | "user"
+  firstName?: string
+  lastName?: string
   createdAt: string
 }
 
@@ -47,6 +49,8 @@ export const DEFAULT_ADMIN: User = {
   username: "admin",
   password: "admin123",
   role: "admin",
+  firstName: "Admin",
+  lastName: "User",
   createdAt: new Date().toISOString(),
 }
 
@@ -78,7 +82,13 @@ export function getUserByUsername(username: string): User | null {
 }
 
 // Add new user
-export function addUser(username: string, password: string, role: "admin" | "user" = "user"): User | null {
+export function addUser(
+  username: string,
+  password: string,
+  role: "admin" | "user" = "user",
+  firstName?: string,
+  lastName?: string,
+): User | null {
   const users = getUsers()
   if (users.find((u) => u.username === username)) {
     return null // User already exists
@@ -89,6 +99,8 @@ export function addUser(username: string, password: string, role: "admin" | "use
     username,
     password,
     role,
+    firstName,
+    lastName,
     createdAt: new Date().toISOString(),
   }
 
@@ -104,6 +116,17 @@ export function deleteUser(userId: string): boolean {
   if (filtered.length === users.length) return false
 
   localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(filtered))
+  return true
+}
+
+// Update user
+export function updateUser(userId: string, updates: Partial<User>): boolean {
+  const users = getUsers()
+  const index = users.findIndex((u) => u.id === userId)
+  if (index === -1) return false
+
+  users[index] = { ...users[index], ...updates }
+  localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users))
   return true
 }
 
