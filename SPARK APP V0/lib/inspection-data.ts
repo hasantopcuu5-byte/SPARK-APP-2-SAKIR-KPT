@@ -76,5 +76,6 @@ export const initialItems: ChecklistItem[] = [
   {"id": 28, "section": "Certificates / Documents", "question": "Statutory certificate endorsements are verified against actual equipment, trading area, cargo carriage and survey window requirements.", "regulations": ["PSC 2026 Focus"], "status": "select", "remarks": "", "photos": [], "department": "Deck", "crew": "Master"},
   {"id": 29, "section": "Certificates / Documents", "question": "Critical statutory certificates and manager-provided digital documents are backed up and accessible during PSC / RightShip inspection without delay.", "regulations": ["PSC 2026 Focus"], "status": "select", "remarks": "", "photos": [], "department": "Deck", "crew": "Master"},
   {"id": 30, "section": "Manuals / Plans", "question": "SOLAS Training Manual is available, ship-specific, in the working language understood by crew, updated and used for onboard training.", "regulations": ["SOLAS III/35", "II-2/15"], "status": "select", "remarks": "", "photos": [], "department": "Deck", "crew": "Master"},
+  export { CHECKLIST_ITEMS };
   // ... Geri kalan 656 madde sistem dosyalarınızda mevcuttur.
 ]
