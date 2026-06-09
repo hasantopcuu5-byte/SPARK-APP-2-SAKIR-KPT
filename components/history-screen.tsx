@@ -7,6 +7,7 @@ import { ChevronLeft, LogOut } from "lucide-react"
 import type { User, InspectionRecord } from "@/lib/auth"
 import { getInspectionRecordsByUser, logout, setCurrentUser } from "@/lib/auth"
 import { useState, useEffect } from "react"
+import { SummaryBar } from "@/components/summary-bar"
 
 export function HistoryScreen({ user, onBack }: { user: User; onBack: () => void }) {
   const [records, setRecords] = useState<InspectionRecord[]>([])
@@ -57,61 +58,62 @@ export function HistoryScreen({ user, onBack }: { user: User; onBack: () => void
             <p className="text-xs text-muted-foreground">Yeni bir denetim tamamlayarak kayıt ekleyin.</p>
           </Card>
         ) : (
-          <div className="flex flex-col gap-4">
-            {records.map((record) => (
-              <Card
-                key={record.id}
-                className="overflow-hidden p-4 transition-all hover:shadow-md"
-              >
-                <div className="flex items-start justify-between gap-4 mb-3">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-foreground text-lg">{record.vesselName}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Kaptan: <span className="font-medium text-foreground">{record.captainName}</span>
-                    </p>
-                  </div>
-                  <Badge className="bg-status-ok/20 text-status-ok">{record.status}</Badge>
-                </div>
+          <div className="flex flex-col gap-6">
+            {records.map((record) => {
+              // Bu kısımlar her bir geçmiş kayıt için sayıları hesaplar
+              const totalCount = record.items.length
+              const okCount = record.items.filter((i) => i.status === "ok").length
+              const defCount = record.items.filter((i) => i.status === "deficiency").length
+              const obsCount = record.items.filter((i) => i.status === "observation").length
+              const checkedCount = record.items.filter((i) => i.status !== "select").length
+              const photosCount = record.items.reduce((sum, i) => sum + (i.photos?.length || 0), 0)
 
-                <div className="grid grid-cols-2 gap-4 py-3 border-t border-b border-secondary/50">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Denetim Tarihi</p>
-                    <p className="font-medium text-foreground">
-                      {new Date(record.inspectionDate).toLocaleDateString("tr-TR")}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Kaydedilme Tarihi</p>
-                    <p className="font-medium text-foreground">
-                      {new Date(record.createdAt).toLocaleDateString("tr-TR")}
-                    </p>
-                  </div>
-                </div>
+              return (
+                <Card
+                  key={record.id}
+                  className="overflow-hidden p-0 transition-all hover:shadow-md"
+                >
+                  <div className="p-4 pb-0">
+                    <div className="flex items-start justify-between gap-4 mb-3">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-foreground text-lg">{record.vesselName}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Kaptan: <span className="font-medium text-foreground">{record.captainName}</span>
+                        </p>
+                      </div>
+                      <Badge className="bg-status-ok/20 text-status-ok">{record.status}</Badge>
+                    </div>
 
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <div className="rounded-lg bg-status-ok/10 px-3 py-1.5">
-                    <p className="text-xs font-medium text-status-ok">
-                      OK: {record.items.filter((i) => i.status === "ok").length}
-                    </p>
+                    <div className="grid grid-cols-2 gap-4 py-3 border-t border-secondary/50 mb-3">
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Denetim Tarihi</p>
+                        <p className="font-medium text-foreground">
+                          {new Date(record.inspectionDate).toLocaleDateString("tr-TR")}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Kaydedilme Tarihi</p>
+                        <p className="font-medium text-foreground">
+                          {new Date(record.createdAt).toLocaleDateString("tr-TR")}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="rounded-lg bg-status-deficiency/10 px-3 py-1.5">
-                    <p className="text-xs font-medium text-status-deficiency">
-                      Kusur: {record.items.filter((i) => i.status === "deficiency").length}
-                    </p>
+
+                  {/* Şık İstatistik Kartları (Summary Bar) Burada Çıkacak */}
+                  <div className="bg-secondary/10 py-3 border-t overflow-hidden">
+                    <SummaryBar
+                      total={totalCount}
+                      checked={checkedCount}
+                      ok={okCount}
+                      deficiency={defCount}
+                      observation={obsCount}
+                      photos={photosCount}
+                    />
                   </div>
-                  <div className="rounded-lg bg-status-observation/10 px-3 py-1.5">
-                    <p className="text-xs font-medium text-status-observation">
-                      Gözlem: {record.items.filter((i) => i.status === "observation").length}
-                    </p>
-                  </div>
-                  <div className="rounded-lg bg-secondary/30 px-3 py-1.5">
-                    <p className="text-xs font-medium text-muted-foreground">
-                      Toplam: {record.items.length}
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              )
+            })}
           </div>
         )}
       </main>
