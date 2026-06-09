@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { FileWarning, Save, FileText } from "lucide-react"
+import { Save, History, LogOut } from "lucide-react"
 
 export function BottomNav({
   onReport,
@@ -17,26 +17,18 @@ export function BottomNav({
         style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
       >
         <Button
-          variant="ghost"
-          onClick={onReport}
-          className="h-12 flex-1 flex-col gap-0.5 rounded-xl text-navy-foreground hover:bg-white/10 hover:text-navy-foreground"
-        >
-          <FileWarning className="size-5 text-status-deficiency" />
-          <span className="text-[11px] font-medium">Deficiency</span>
-        </Button>
-        <Button
           onClick={onSave}
-          className="h-12 flex-1 flex-col gap-0.5 rounded-xl border border-white/25 bg-white/10 text-navy-foreground hover:bg-white/20"
+          className="h-12 flex-1 flex-col gap-0.5 rounded-xl border border-white/25 bg-status-ok text-white hover:bg-status-ok/90 font-semibold"
         >
           <Save className="size-5" />
-          <span className="text-[11px] font-medium">Save Draft</span>
+          <span className="text-[11px] font-medium">Kaydet</span>
         </Button>
         <Button
           onClick={onPdf}
           className="h-12 flex-[1.3] flex-col gap-0.5 rounded-xl bg-gold font-semibold text-gold-foreground shadow-lg shadow-gold/20 hover:bg-gold/90"
         >
-          <FileText className="size-5" />
-          <span className="text-[11px] font-semibold">Full PDF</span>
+          <History className="size-5" />
+          <span className="text-[11px] font-semibold">PDF Rapor</span>
         </Button>
       </div>
     </nav>
