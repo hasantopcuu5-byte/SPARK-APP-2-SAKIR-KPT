@@ -27,7 +27,7 @@ export default function Page() {
   // Uygulama ilk açıldığında IndexedDB'de kayıtlı taslak var mı kontrol et (Auto-Load)
   useEffect(() => {
     localforage.getItem<ChecklistItem[]>("spark_indexeddb_inspection").then((savedItems) => {
-      if (savedItems && savedItems.length === items.length) {
+      if (savedItems && savedItems.length === initialItems.length) {
         setItems(savedItems)
       }
     }).catch(err => console.error("IndexedDB load error:", err))
