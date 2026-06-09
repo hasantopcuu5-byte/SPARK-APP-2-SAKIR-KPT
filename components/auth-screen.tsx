@@ -57,7 +57,7 @@ export function AuthScreen({ onAuthSuccess }: { onAuthSuccess: (user: User) => v
 
     // Admin şifresini şimdilik admin / 1234 yaptık. Değiştirebilirsin.
     if (adminUsername === "admin" && adminPassword === "1234") {
-      router.push("/admin")
+      router.push("/adminpage")
     } else {
       setError("Hatalı admin kullanıcı adı veya şifre")
     }
