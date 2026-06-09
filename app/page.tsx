@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { AppBar } from "@/components/app-bar"
 import { VesselDetails } from "@/components/vessel-details"
-import { SummaryBar } from "@/components/summary-bar"
+
 import { Filters } from "@/components/filters"
 import { ChecklistItemCard } from "@/components/checklist-item-card"
 import { BottomNav } from "@/components/bottom-nav"
