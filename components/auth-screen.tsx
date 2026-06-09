@@ -170,7 +170,7 @@ export function AuthScreen({ onAuthSuccess }: { onAuthSuccess: (user: User) => v
 
               {error && tab === "admin" && <p className="text-sm font-medium text-status-deficiency">{error}</p>}
 
-              <Button type="submit" className="h-11 rounded-lg bg-gold font-semibold text-navy-foreground hover:bg-gold/90">
+               <Button type="submit" className="h-11 rounded-lg bg-navy font-semibold text-white hover:bg-navy/90">
                 Giriş Yap
               </Button>
             </form>
