@@ -166,14 +166,6 @@ export default function Page() {
           onDateChange={setInspectionDate}
         />
 
-        <SummaryBar
-          total={totalCount}
-          checked={counts.checked}
-          ok={counts.ok}
-          deficiency={counts.deficiency}
-          observation={counts.observation}
-          photos={counts.photos}
-        />
 
         <Tabs value={tab} onValueChange={setTab} className="gap-5">
           <TabsList className="grid h-11 w-full grid-cols-1 rounded-xl bg-secondary/60 p-1">
