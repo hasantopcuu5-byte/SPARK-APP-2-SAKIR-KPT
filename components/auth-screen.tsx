@@ -137,7 +137,7 @@ export function AuthScreen({ onAuthSuccess }: { onAuthSuccess: (user: User) => v
           <TabsContent value="admin" className="gap-4 p-6">
             <form onSubmit={handleAdminLogin} className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-foreground">Admin Kullanıcı Adı</label>
+                <label className="text-sm font-medium text-foreground">Kullanıcı Adı</label>
                 <Input
                   type="text"
                   value={adminUsername}
@@ -148,7 +148,7 @@ export function AuthScreen({ onAuthSuccess }: { onAuthSuccess: (user: User) => v
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-foreground">Admin Şifresi</label>
+                <label className="text-sm font-medium text-foreground">Şifre</label>
                 <div className="relative">
                   <Input
                     type={showAdminPassword ? "text" : "password"}
@@ -171,7 +171,7 @@ export function AuthScreen({ onAuthSuccess }: { onAuthSuccess: (user: User) => v
               {error && tab === "admin" && <p className="text-sm font-medium text-status-deficiency">{error}</p>}
 
               <Button type="submit" className="h-11 rounded-lg bg-gold font-semibold text-navy-foreground hover:bg-gold/90">
-                Yönetim Paneline Geç
+                Giriş Yap
               </Button>
             </form>
           </TabsContent>
