@@ -14,11 +14,11 @@ export interface ChecklistItem {
   crew?: string
 }
 
-// Üst adımda hazırladığımız 656 maddelik dev veriyi güvenlice çekiyoruz
+// Arka plandaki 656 maddelik dev listeyi güvenlice çekiyoruz
 // @ts-ignore
 import { CHECKLIST_ITEMS } from "./data"
 
-// Kategorileri elinizdeki veriden otomatik olarak ayıklar (Sıfır hata koruması)
+// Kategorileri elinizdeki veriden dinamik olarak hatasız ayıklar
 export const SECTIONS = CHECKLIST_ITEMS && CHECKLIST_ITEMS.length > 0
   ? Array.from(new Set(CHECKLIST_ITEMS.map((item: any) => item.section || "General")))
   : [
@@ -50,10 +50,10 @@ export const STATUS_OPTIONS: { value: Status; label: string }[] = [
   { value: "na", label: "N/A" },
 ]
 
-// PROFESYONEL COKME KORUMALI OTOMATIK DONUSTURUCU (MAPPING)
-// 656 maddelik ham listenizi v0'ın arayüz modeline tıkır tıkır çevirir.
+// OTOMATİK VERİ MAPPING ADAPTÖRÜ
+// Maddeleri tek tek elinizle yazmanıza gerek yok. Bu kod tüm veriyi otomatik v0 tasarımına uyarlar.
 export const initialItems: ChecklistItem[] = (CHECKLIST_ITEMS || []).map((item: any, index: number) => {
-  // SOLAS, MARPOL, STCW, MLC regülasyon kodlarını birleştirip diziye alıyoruz
+  // SOLAS, MARPOL, STCW, MLC regülasyon kodlarını süzüp diziye alıyoruz
   const regs = [item.solas, item.marpol, item.stcw, item.mlc].filter(
     (r) => r && r.trim() !== ""
   )
@@ -61,7 +61,7 @@ export const initialItems: ChecklistItem[] = (CHECKLIST_ITEMS || []).map((item: 
   return {
     id: index + 1,
     section: item.section || "General",
-    question: item.item || "", // Orijinal 'item' alanını v0'ın beklediği 'question' alanına eşitler
+    question: item.item || "", // Orijinal ham verideki 'item' alanını v0'ın beklediği 'question' alanına eşitler
     regulations: regs,
     status: "select",
     remarks: item.remarks || "",
