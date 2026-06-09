@@ -6,7 +6,6 @@ import { VesselDetails } from "@/components/vessel-details"
 import { SummaryBar } from "@/components/summary-bar"
 import { Filters } from "@/components/filters"
 import { ChecklistItemCard } from "@/components/checklist-item-card"
-import { DeficiencyTable } from "@/components/deficiency-table"
 import { BottomNav } from "@/components/bottom-nav"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { initialItems, type ChecklistItem, type Status } from "@/lib/inspection-data"
@@ -90,17 +89,9 @@ export default function Page() {
         />
 
         <Tabs value={tab} onValueChange={setTab} className="gap-5">
-          <TabsList className="grid h-11 w-full grid-cols-2 rounded-xl bg-secondary/60 p-1">
+          <TabsList className="grid h-11 w-full grid-cols-1 rounded-xl bg-secondary/60 p-1">
             <TabsTrigger value="checklist" className="rounded-lg text-sm font-medium">
               Checklist
-            </TabsTrigger>
-            <TabsTrigger value="deficiency" className="rounded-lg text-sm font-medium">
-              Deficiencies
-              {counts.deficiency > 0 && (
-                <span className="ml-1.5 flex size-5 items-center justify-center rounded-full bg-status-deficiency text-[10px] font-bold text-white">
-                  {counts.deficiency}
-                </span>
-              )}
             </TabsTrigger>
           </TabsList>
 
@@ -137,14 +128,10 @@ export default function Page() {
               )}
             </div>
           </TabsContent>
-
-          <TabsContent value="deficiency">
-            <DeficiencyTable items={itemsWithPhotos} />
-          </TabsContent>
         </Tabs>
       </main>
 
-      <BottomNav onReport={() => setTab("deficiency")} onSave={() => {}} onPdf={() => {}} />
+      <BottomNav onReport={() => {}} onSave={() => {}} onPdf={() => {}} />
     </div>
   )
 }
