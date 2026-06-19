@@ -32,7 +32,6 @@ export function SummaryBar({
   photos: number
 }) {
   const stats: Stat[] = [
-    { label: "Total Items", value: total, icon: ListChecks, tone: "navy" },
     { label: "Checked", value: checked, icon: ClipboardCheck, tone: "gold" },
     { label: "OK", value: ok, icon: CheckCircle2, tone: "ok" },
     { label: "Deficiency", value: deficiency, icon: AlertTriangle, tone: "deficiency" },
@@ -41,14 +40,14 @@ export function SummaryBar({
   ]
 
   return (
-    <div className="-mx-4 px-4">
-      <div className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="w-full min-w-0 overflow-hidden">
+      <div className="flex w-full snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {stats.map((s) => {
           const Icon = s.icon
           return (
             <div
               key={s.label}
-              className="flex min-w-[104px] shrink-0 flex-col gap-1.5 rounded-2xl border bg-card px-3.5 py-3 shadow-sm"
+              className="flex min-w-[104px] shrink-0 snap-start flex-col gap-1.5 rounded-2xl border bg-card px-3.5 py-3 shadow-sm"
             >
               <Icon className={`size-4 ${toneClasses[s.tone]}`} />
               <span className={`font-mono text-2xl font-bold leading-none ${toneClasses[s.tone]}`}>{s.value}</span>

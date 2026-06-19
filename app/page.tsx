@@ -27,6 +27,7 @@ export default function Page() {
   const [captainName, setCaptainName] = useState("")
   const [inspectionDate, setInspectionDate] = useState("")
   const [screen, setScreen] = useState<"auth" | "inspection" | "history">("auth")
+  const [isInitializing, setIsInitializing] = useState(true)
 
   // Initialize auth and load current user on mount
   useEffect(() => {
@@ -38,6 +39,7 @@ export default function Page() {
     } else {
       setScreen("auth")
     }
+    setIsInitializing(false)
   }, [])
 
   const totalCount = items.length
@@ -127,6 +129,14 @@ export default function Page() {
     setTab("checklist")
   }
 
+  if (isInitializing) {
+    return (
+      <div className="min-h-dvh bg-background flex items-center justify-center">
+        <div className="size-8 animate-spin rounded-full border-4 border-navy border-t-transparent" />
+      </div>
+    )
+  }
+
   // Auth Screen
   if (screen === "auth") {
     return (
@@ -211,9 +221,9 @@ export default function Page() {
       </main>
 
       <BottomNav
-        onReport={() => {}}
+        onReport={() => { }}
         onSave={handleSaveInspection}
-        onPdf={() => {}}
+        onPdf={() => { }}
       />
     </div>
   )
