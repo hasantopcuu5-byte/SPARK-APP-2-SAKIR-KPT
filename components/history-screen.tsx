@@ -39,15 +39,20 @@ export function HistoryScreen({ user, onBack, onResume }: { user: User; onBack: 
       setIsLoading(true)
       const allRecords = await fetchGlobalInspectionRecords()
 
-      // Sıralama: Önce in_progress olanlar, sonra createdAt'e göre azalan sırada
-      allRecords.sort((a, b) => {
+      // 1. ADIM: Aynı ID'ye sahip mükerrer (duplicate) kayıtları filtreleyip teke düşürüyoruz
+      const uniqueRecords = allRecords.filter((record, index, self) =>
+        self.findIndex(r => r.id === record.id) === index
+      )
+
+      // 2. ADIM: Ayıklanmış temiz listeyi sıralıyoruz
+      uniqueRecords.sort((a, b) => {
         if (a.status === "in_progress" && b.status !== "in_progress") return -1;
         if (a.status !== "in_progress" && b.status === "in_progress") return 1;
 
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
 
-      setRecords(allRecords)
+      setRecords(uniqueRecords)
       setIsLoading(false)
     }
     loadRecords()
