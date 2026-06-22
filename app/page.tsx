@@ -1,5 +1,5 @@
 "use client"
-
+export const runtime = 'edge'; // <-- BU SATIRI EKLE
 import { useEffect, useMemo, useState, useRef } from "react"
 import { AppBar } from "@/components/app-bar"
 import { VesselDetails } from "@/components/vessel-details"

@@ -1,5 +1,5 @@
 "use client"
-
+export const runtime = 'edge'; // <-- BU SATIRI EKLE
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
@@ -88,7 +88,7 @@ export default function AdminDashboard() {
       </header>
 
       <main className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-6">
-        
+
         {/* Enspektör Ekleme Kartı */}
         <Card className="p-5 shadow-sm">
           <form onSubmit={handleAddUser} className="flex flex-col gap-4">
@@ -130,7 +130,7 @@ export default function AdminDashboard() {
         {/* Kayıtlı Enspektörler Listesi */}
         <Card className="p-5 shadow-sm flex flex-col gap-3">
           <h3 className="font-semibold text-foreground border-b pb-2">Kayıtlı Enspektörler</h3>
-          
+
           <div className="flex flex-col gap-2">
             {users.filter((u) => u.role === "user").length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">Henüz kayıtlı enspektör yok.</p>
@@ -143,7 +143,7 @@ export default function AdminDashboard() {
                       <Input value={editLastName} onChange={(e) => setEditLastName(e.target.value)} placeholder="Soyadı" className="h-9 text-sm" />
                       <Input value={editUsername} onChange={(e) => setEditUsername(e.target.value)} placeholder="Kullanıcı Adı" className="h-9 text-sm" />
                       <Input type="text" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} placeholder="Şifre" className="h-9 text-sm" />
-                      
+
                       <div className="flex gap-2 mt-1">
                         <Button size="sm" className="flex-1 bg-status-ok hover:bg-status-ok/90">
                           <Check className="size-3 mr-1" /> Güncelle
