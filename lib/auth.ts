@@ -48,6 +48,7 @@ export const STORAGE_KEYS = {
   USERS: "spark_users",
   CURRENT_USER: "spark_current_user",
   INSPECTION_RECORDS: "spark_inspection_records",
+  DELETED_IDS: "spark_deleted_record_ids",
 }
 
 // Yerel Kayıtları Getiren Yardımcı Fonksiyon
@@ -57,7 +58,6 @@ export async function getInspectionRecords(): Promise<InspectionRecord[]> {
   return records ? records : []
 }
 
-// --- Denetim Kaydını Silme Motoru (Doğru ve Tek Sürüm) ---
 export async function deleteInspectionRecord(recordId: string): Promise<boolean> {
   if (typeof window === "undefined") return false
 
@@ -66,6 +66,13 @@ export async function deleteInspectionRecord(recordId: string): Promise<boolean>
   const filtered = records.filter(r => r.id !== recordId)
   await set(STORAGE_KEYS.INSPECTION_RECORDS, filtered)
   console.log(`✅ Kayıt yerel hafızadan (IndexedDB) silindi: ${recordId}`)
+
+  // 1.5. Adım: Silinen ID'yi tombstone listesine ekle (hortlamayı önler)
+  const deletedIds: string[] = (await get(STORAGE_KEYS.DELETED_IDS)) || []
+  if (!deletedIds.includes(recordId)) {
+    deletedIds.push(recordId)
+    await set(STORAGE_KEYS.DELETED_IDS, deletedIds)
+  }
 
   // 2. Adım: Eğer o an cihaz internete bağlıysa Firestore bulutundan da sil
   if (navigator.onLine) {
@@ -80,7 +87,6 @@ export async function deleteInspectionRecord(recordId: string): Promise<boolean>
 
   return true
 }
-
 // Kayıttaki Base64 Fotoğrafları Storage'a Yükleme Motoru
 async function uploadRecordPhotosToStorage(record: InspectionRecord): Promise<InspectionRecord> {
   const updatedItems = await Promise.all(record.items.map(async (item) => {
@@ -211,12 +217,17 @@ export async function saveInspectionRecord(
       try {
         const fullyUploadedRecord = await uploadRecordPhotosToStorage(newRecord);
         const records = await getInspectionRecords()
+
+        // 🌟 KRİTİK KONTROL: Eğer kullanıcı bu süreçte kaydı yerelden sildiyse (idx < 0), buluta yazmayı iptal et!
         const idx = records.findIndex(r => r.id === id)
         if (idx >= 0) {
           records[idx] = fullyUploadedRecord;
           await set(STORAGE_KEYS.INSPECTION_RECORDS, records);
+          await setDoc(doc(db, "inspection_records", id), fullyUploadedRecord);
+        } else {
+          console.log("⚠️ Kayıt silindiği için Firestore'a yazılmadı, Firestore'dan da temizleniyor.");
+          try { await deleteDoc(doc(db, "inspection_records", id)) } catch (_) { }
         }
-        await setDoc(doc(db, "inspection_records", id), fullyUploadedRecord);
       } catch (e) {
         console.error("Arka plan bulut kaydı hatası:", e);
       }
@@ -231,10 +242,24 @@ export async function fetchGlobalInspectionRecords(): Promise<InspectionRecord[]
     if (typeof window !== "undefined" && !navigator.onLine) {
       return getInspectionRecords();
     }
+
     const q = query(collection(db, "inspection_records"), orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
     const records: InspectionRecord[] = [];
     querySnapshot.forEach((doc) => { records.push(doc.data() as InspectionRecord); });
+
+    if (typeof window !== "undefined") {
+      const deletedIds: string[] = (await get(STORAGE_KEYS.DELETED_IDS)) || []
+
+      const localRecords = await getInspectionRecords()
+      const firestoreIds = new Set(records.map(r => r.id))
+      const offlineOnly = localRecords.filter(r => !firestoreIds.has(r.id) && !deletedIds.includes(r.id))
+
+      const merged = [...records, ...offlineOnly].filter(r => !deletedIds.includes(r.id))
+      await set(STORAGE_KEYS.INSPECTION_RECORDS, merged)
+      return merged
+    }
+
     return records;
   } catch (error) {
     console.error("Veri çekilirken hata, lokale dönülüyor:", error);

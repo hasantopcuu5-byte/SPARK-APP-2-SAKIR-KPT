@@ -303,14 +303,6 @@ export function HistoryScreen({ user, onBack, onResume }: { user: User; onBack: 
                         <Badge className={record.status === "in_progress" ? "bg-status-observation/90 text-white" : "bg-status-ok/20 text-status-ok"}>
                           {record.status === "in_progress" ? "In Progress" : "Completed"}
                         </Badge>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-8 rounded-lg text-status-deficiency hover:bg-status-deficiency/10 hover:text-status-deficiency shrink-0"
-                          onClick={(e) => handleDeleteRecord(record.id, e)}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
                       </div>
                     </div>
 
@@ -342,20 +334,23 @@ export function HistoryScreen({ user, onBack, onResume }: { user: User; onBack: 
                     />
                   </div>
 
-                  {/* Admin Actions */}
-                  {user.role === "admin" && (
-                    <div className="flex gap-3 justify-end px-4 py-3 bg-secondary/20 border-t" onClick={(e) => e.stopPropagation()}>
-                      {record.status === "completed" && onResume && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-2 text-navy border-navy/20 hover:bg-navy/10"
-                          onClick={() => onResume(record)}
-                        >
-                          <Edit className="size-4" />
-                          Düzenle
-                        </Button>
-                      )}
+                  {/* Alt Aksiyon Çubuğu (Geliştirildi ve Güvenli Hale Getirildi) */}
+                  <div className="flex gap-3 justify-end px-4 py-3 bg-secondary/20 border-t" onClick={(e) => e.stopPropagation()}>
+                    {/* Düzenle Butonu: onResume fonksiyonu mevcut olduğu sürece artık HERKESE görünür */}
+                    {onResume && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2 text-navy border-navy/20 hover:bg-navy/10"
+                        onClick={() => onResume(record)}
+                      >
+                        <Edit className="size-4" />
+                        Düzenle
+                      </Button>
+                    )}
+
+                    {/* Silme Butonu: Admin olanlar her kaydı silebilir, normal kullanıcılar ise sadece In Progress kayıtlarını silebilir */}
+                    {(user.role === "admin" || record.status === "in_progress") && (
                       <Button
                         variant="destructive"
                         size="sm"
@@ -365,8 +360,8 @@ export function HistoryScreen({ user, onBack, onResume }: { user: User; onBack: 
                         <Trash2 className="size-4" />
                         Sil
                       </Button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </Card>
               )
             })}
