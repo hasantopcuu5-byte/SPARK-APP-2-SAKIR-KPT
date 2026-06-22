@@ -1,6 +1,7 @@
 import { db, storage } from "./firebase"
-// deleteDoc fonksiyonu import listesine eklendi
-import { collection, getDocs, query, orderBy, setDoc, doc, deleteDoc } from "firebase/firestore/lite"
+// Sadece tek bir Firestore paketinden import yapıyoruz (Lite olanı kaldırdık)
+import { collection, getDocs, query, orderBy, setDoc, doc, deleteDoc } from "firebase/firestore"
+// Firebase Storage için eksik importlar eklendi:
 import { ref, uploadString, getDownloadURL } from "firebase/storage"
 import { get, set } from "idb-keyval"
 
@@ -49,23 +50,31 @@ export const STORAGE_KEYS = {
   INSPECTION_RECORDS: "spark_inspection_records",
 }
 
-// --- YENİ EKLENEN FONKSİYON: Denetim Kaydını Silme Motoru (IndexedDB + Firestore) ---
+// Yerel Kayıtları Getiren Yardımcı Fonksiyon
+export async function getInspectionRecords(): Promise<InspectionRecord[]> {
+  if (typeof window === "undefined") return []
+  const records = await get(STORAGE_KEYS.INSPECTION_RECORDS)
+  return records ? records : []
+}
+
+// --- Denetim Kaydını Silme Motoru (Doğru ve Tek Sürüm) ---
 export async function deleteInspectionRecord(recordId: string): Promise<boolean> {
+  if (typeof window === "undefined") return false
+
   // 1. Adım: Telefonun yerel hafızasından (IndexedDB) sil
-  if (typeof window !== "undefined") {
-    const records = await getInspectionRecords()
-    const filtered = records.filter(r => r.id !== recordId)
-    await set(STORAGE_KEYS.INSPECTION_RECORDS, filtered)
-    console.log(`✅ Kayıt yerel hafızandan (IndexedDB) silindi: ${recordId}`)
-  }
+  const records = await getInspectionRecords()
+  const filtered = records.filter(r => r.id !== recordId)
+  await set(STORAGE_KEYS.INSPECTION_RECORDS, filtered)
+  console.log(`✅ Kayıt yerel hafızadan (IndexedDB) silindi: ${recordId}`)
 
   // 2. Adım: Eğer o an cihaz internete bağlıysa Firestore bulutundan da sil
-  if (typeof window !== "undefined" && navigator.onLine) {
+  if (navigator.onLine) {
     try {
       await deleteDoc(doc(db, "inspection_records", recordId))
       console.log(`✅ Kayıt buluttan (Firestore) başarıyla silindi: ${recordId}`)
     } catch (error) {
       console.error("Kayıt buluttan silinirken hata oluştu:", error)
+      return false
     }
   }
 
@@ -118,6 +127,8 @@ export async function syncOfflineRecords() {
     }
   }
 }
+
+// --- KULLANICI YÖNETİMİ (AUTH) FONKSİYONLARI ---
 
 export async function initializeUsers() {
   if (typeof window === "undefined") return
@@ -229,12 +240,6 @@ export async function fetchGlobalInspectionRecords(): Promise<InspectionRecord[]
     console.error("Veri çekilirken hata, lokale dönülüyor:", error);
     return getInspectionRecords();
   }
-}
-
-export async function getInspectionRecords(): Promise<InspectionRecord[]> {
-  if (typeof window === "undefined") return []
-  const records = await get(STORAGE_KEYS.INSPECTION_RECORDS)
-  return records ? records : []
 }
 
 export async function getInspectionRecordsByUser(userId: string): Promise<InspectionRecord[]> {

@@ -3,36 +3,19 @@
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ChevronLeft, LogOut } from "lucide-react"
+import { ChevronLeft, LogOut, Download, X, History, Trash2, Edit } from "lucide-react"
 import type { User, InspectionRecord } from "@/lib/auth"
-import { fetchGlobalInspectionRecords, logout, setCurrentUser } from "@/lib/auth"
+import { fetchGlobalInspectionRecords, logout, setCurrentUser, deleteInspectionRecord } from "@/lib/auth"
 import { useState, useEffect } from "react"
 import { SummaryBar } from "@/components/summary-bar"
-
 import { cn } from "@/lib/utils"
-import { Download, X, History, Trash2, Edit } from "lucide-react"
 import { PdfReport } from "@/components/pdf-report"
-import { deleteInspectionRecord } from "@/lib/auth"
 
 export function HistoryScreen({ user, onBack, onResume }: { user: User; onBack: () => void; onResume?: (record: any) => void }) {
   const [records, setRecords] = useState<InspectionRecord[]>([])
   const [selectedRecord, setSelectedRecord] = useState<InspectionRecord | null>(null)
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null)
-
   const [isLoading, setIsLoading] = useState(true)
-
-  const handleDeleteRecord = async (recordId: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (!window.confirm("Bu kaydı kalıcı olarak silmek istediğinize emin misiniz?")) return
-
-    setIsLoading(true)
-    await deleteInspectionRecord(recordId)
-    setRecords(records.filter((r) => r.id !== recordId))
-    if (selectedRecord?.id === recordId) {
-      setSelectedRecord(null)
-    }
-    setIsLoading(false)
-  }
 
   useEffect(() => {
     const loadRecords = async () => {
@@ -71,6 +54,26 @@ export function HistoryScreen({ user, onBack, onResume }: { user: User; onBack: 
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+  }
+
+  // Çevrimdışı ve Çevrimiçi Silme Motorunu Yöneten Fonksiyon
+  const handleDeleteRecord = async (recordId: string, e: React.MouseEvent) => {
+    e.stopPropagation() // Karta tıklayıp detay sayfasına gitmesini engellemek için
+
+    if (confirm("Bu denetim kaydını tamamen silmek istediğinize emin misiniz?")) {
+      setIsLoading(true)
+      const success = await deleteInspectionRecord(recordId)
+      if (success) {
+        // Ekrandaki listeden anında kaldır
+        setRecords(prev => prev.filter(r => r.id !== recordId))
+        if (selectedRecord?.id === recordId) {
+          setSelectedRecord(null)
+        }
+      } else {
+        alert("Silme işlemi esnasında bir hata oluştu.")
+      }
+      setIsLoading(false)
+    }
   }
 
   if (selectedRecord) {
@@ -267,7 +270,6 @@ export function HistoryScreen({ user, onBack, onResume }: { user: User; onBack: 
         ) : (
           <div className="flex flex-col gap-6">
             {records.map((record) => {
-              // Kayıtlı öğeleri sayıyoruz
               const items = record.items || []
               const totalCount = items.length
               const okCount = items.filter((i: any) => i.status === "ok").length
@@ -297,9 +299,19 @@ export function HistoryScreen({ user, onBack, onResume }: { user: User; onBack: 
                           Kaptan: <span className="font-medium text-foreground">{record.captainName}</span>
                         </p>
                       </div>
-                      <Badge className={record.status === "in_progress" ? "bg-status-observation/90 text-white" : "bg-status-ok/20 text-status-ok"}>
-                        {record.status === "in_progress" ? "In Progress" : "Completed"}
-                      </Badge>
+                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                        <Badge className={record.status === "in_progress" ? "bg-status-observation/90 text-white" : "bg-status-ok/20 text-status-ok"}>
+                          {record.status === "in_progress" ? "In Progress" : "Completed"}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 rounded-lg text-status-deficiency hover:bg-status-deficiency/10 hover:text-status-deficiency shrink-0"
+                          onClick={(e) => handleDeleteRecord(record.id, e)}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 py-3 border-t border-secondary/50 mb-3">
