@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic'; // Sayfanın önbelleğe alınmasını engeller
+export const revalidate = 0; // Her istekte veriyi zorunlu olarak yeniler
+
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'

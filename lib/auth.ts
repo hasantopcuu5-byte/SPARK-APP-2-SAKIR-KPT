@@ -1,6 +1,6 @@
 import { db, storage } from "./firebase"
 // Sadece tek bir Firestore paketinden import yapıyoruz (Lite olanı kaldırdık)
-import { collection, getDocs, query, orderBy, setDoc, doc, deleteDoc } from "firebase/firestore"
+import { collection, getDocs, query, orderBy, setDoc, doc, deleteDoc } from "firebase/firestore/lite"
 // Firebase Storage için eksik importlar eklendi:
 import { ref, uploadString, getDownloadURL } from "firebase/storage"
 import { get, set } from "idb-keyval"
