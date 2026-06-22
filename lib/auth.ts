@@ -1,5 +1,5 @@
 import { db } from "./firebase"
-import { collection, addDoc, getDocs, query, orderBy, setDoc, doc } from "firebase/firestore/lite"
+import { collection, addDoc, getDocs, query, orderBy, setDoc, doc, deleteDoc } from "firebase/firestore/lite"
 
 // Authentication types and data
 export type User = {
@@ -57,6 +57,15 @@ export const DEFAULT_ADMIN: User = {
   createdAt: new Date().toISOString(),
 }
 
+// Varsayılan Enspektörler
+export const DEFAULT_INSPECTORS: User[] = [
+  { id: "user-ertan", username: "ertankose", password: "eK92!p", role: "user", firstName: "Ertan", lastName: "Köse", createdAt: new Date().toISOString() },
+  { id: "user-onur", username: "onurbenzet", password: "oB47$x", role: "user", firstName: "Onur", lastName: "Benzet", createdAt: new Date().toISOString() },
+  { id: "user-oktay", username: "oktaykaran", password: "oK81@m", role: "user", firstName: "Oktay", lastName: "Karan", createdAt: new Date().toISOString() },
+  { id: "user-erdem", username: "erdemgur", password: "eG35#v", role: "user", firstName: "Erdem", lastName: "Gür", createdAt: new Date().toISOString() },
+  { id: "user-ferhat", username: "ferhatsolmaz", password: "fS68&n", role: "user", firstName: "Ferhat", lastName: "Solmaz", createdAt: new Date().toISOString() }
+]
+
 // Local storage keys
 export const STORAGE_KEYS = {
   USERS: "spark_users",
@@ -66,9 +75,23 @@ export const STORAGE_KEYS = {
 
 // Initialize users in localStorage
 export function initializeUsers() {
-  const users = localStorage.getItem(STORAGE_KEYS.USERS)
-  if (!users) {
-    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify([DEFAULT_ADMIN]))
+  const usersStr = localStorage.getItem(STORAGE_KEYS.USERS)
+  let users: User[] = usersStr ? JSON.parse(usersStr) : []
+  
+  if (users.length === 0) {
+    users.push(DEFAULT_ADMIN)
+  }
+
+  let modified = false;
+  DEFAULT_INSPECTORS.forEach(inspector => {
+    if (!users.find(u => u.username === inspector.username)) {
+      users.push(inspector);
+      modified = true;
+    }
+  });
+
+  if (modified || !usersStr) {
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users))
   }
 }
 
@@ -142,7 +165,8 @@ export async function saveInspectionRecord(
   inspectionDate: string,
   items: any[],
   status: "completed" | "in_progress" = "completed",
-  recordId?: string
+  recordId?: string,
+  originalCreatedAt?: string
 ): Promise<InspectionRecord> {
   const id = recordId || `inspection-${Date.now()}`;
   
@@ -155,7 +179,7 @@ export async function saveInspectionRecord(
     inspectionDate,
     status,
     items,
-    createdAt: new Date().toISOString(),
+    createdAt: originalCreatedAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
 
@@ -171,8 +195,6 @@ export async function saveInspectionRecord(
   const records = getInspectionRecords()
   const existingIndex = records.findIndex(r => r.id === id)
   if (existingIndex >= 0) {
-    // Keep original createdAt if updating
-    newRecord.createdAt = records[existingIndex].createdAt
     records[existingIndex] = newRecord
   } else {
     records.push(newRecord)
@@ -182,16 +204,39 @@ export async function saveInspectionRecord(
   return newRecord
 }
 
+// Delete inspection record
+export async function deleteInspectionRecord(recordId: string): Promise<boolean> {
+  // Firebase'den sil
+  try {
+    await deleteDoc(doc(db, "inspection_records", recordId));
+    console.log("Document successfully deleted: ", recordId);
+  } catch (e) {
+    console.error("Error deleting document: ", e);
+  }
+
+  // Lokal depolamayı güncelle
+  const records = getInspectionRecords()
+  const filtered = records.filter((r) => r.id !== recordId)
+  if (filtered.length === records.length) return false
+
+  localStorage.setItem(STORAGE_KEYS.INSPECTION_RECORDS, JSON.stringify(filtered))
+  return true
+}
+
 // Fetch all inspection records from Firestore
 export async function fetchGlobalInspectionRecords(): Promise<InspectionRecord[]> {
   try {
     const q = query(collection(db, "inspection_records"), orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
-    const records: InspectionRecord[] = [];
+    const recordsMap = new Map<string, InspectionRecord>();
     querySnapshot.forEach((doc) => {
-      records.push(doc.data() as InspectionRecord);
+      const data = doc.data() as InspectionRecord;
+      // Eğer aynı ID'ye sahip birden fazla kayıt varsa (eski orphaned doc vs.), ilk geleni (en yeniyi) tutarız.
+      if (!recordsMap.has(data.id)) {
+        recordsMap.set(data.id, data);
+      }
     });
-    return records;
+    return Array.from(recordsMap.values());
   } catch (error) {
     console.error("Error fetching inspection records:", error);
     // Firebase başarısız olursa lokaldekileri döndür
@@ -201,8 +246,19 @@ export async function fetchGlobalInspectionRecords(): Promise<InspectionRecord[]
 
 // Get all inspection records
 export function getInspectionRecords(): InspectionRecord[] {
-  const records = localStorage.getItem(STORAGE_KEYS.INSPECTION_RECORDS)
-  return records ? JSON.parse(records) : []
+  const recordsStr = localStorage.getItem(STORAGE_KEYS.INSPECTION_RECORDS)
+  if (!recordsStr) return []
+  
+  try {
+    const records: InspectionRecord[] = JSON.parse(recordsStr)
+    const recordsMap = new Map<string, InspectionRecord>();
+    records.forEach(r => {
+      if (!recordsMap.has(r.id)) recordsMap.set(r.id, r)
+    })
+    return Array.from(recordsMap.values());
+  } catch (e) {
+    return []
+  }
 }
 
 // Get inspection records by user

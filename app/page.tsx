@@ -30,6 +30,7 @@ export default function Page() {
   const [screen, setScreen] = useState<"auth" | "inspection" | "history">("auth")
   const [isInitializing, setIsInitializing] = useState(true)
   const [activeRecordId, setActiveRecordId] = useState<string | null>(null)
+  const [activeRecordCreatedAt, setActiveRecordCreatedAt] = useState<string | null>(null)
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
   const pdfRef = useRef<HTMLDivElement>(null)
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
@@ -147,7 +148,8 @@ export default function Page() {
       inspectionDate,
       itemsWithPhotos,
       status,
-      activeRecordId || undefined
+      activeRecordId || undefined,
+      activeRecordCreatedAt || undefined
     )
 
     alert(status === "completed" ? "✅ Denetim başarıyla tamamlandı!" : "✅ Denetim taslak olarak kaydedildi!")
@@ -163,6 +165,7 @@ export default function Page() {
     setInspectionDate("")
     setTab("checklist")
     setActiveRecordId(null)
+    setActiveRecordCreatedAt(null)
   }
 
   function handleResumeRecord(record: any) {
@@ -184,6 +187,7 @@ export default function Page() {
     setPhotoMap(newPhotoMap)
 
     setActiveRecordId(record.id)
+    setActiveRecordCreatedAt(record.createdAt || null)
     setScreen("inspection")
   }
 

@@ -10,8 +10,9 @@ import { useState, useEffect } from "react"
 import { SummaryBar } from "@/components/summary-bar"
 
 import { cn } from "@/lib/utils"
-import { Download, X, History } from "lucide-react"
+import { Download, X, History, Trash2, Edit } from "lucide-react"
 import { PdfReport } from "@/components/pdf-report"
+import { deleteInspectionRecord } from "@/lib/auth"
 
 export function HistoryScreen({ user, onBack, onResume }: { user: User; onBack: () => void; onResume?: (record: any) => void }) {
   const [records, setRecords] = useState<InspectionRecord[]>([])
@@ -19,6 +20,19 @@ export function HistoryScreen({ user, onBack, onResume }: { user: User; onBack: 
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null)
 
   const [isLoading, setIsLoading] = useState(true)
+
+  const handleDeleteRecord = async (recordId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!window.confirm("Bu kaydı kalıcı olarak silmek istediğinize emin misiniz?")) return
+    
+    setIsLoading(true)
+    await deleteInspectionRecord(recordId)
+    setRecords(records.filter((r) => r.id !== recordId))
+    if (selectedRecord?.id === recordId) {
+      setSelectedRecord(null)
+    }
+    setIsLoading(false)
+  }
 
   useEffect(() => {
     const loadRecords = async () => {
@@ -310,6 +324,32 @@ export function HistoryScreen({ user, onBack, onResume }: { user: User; onBack: 
                       photos={photosCount}
                     />
                   </div>
+
+                  {/* Admin Actions */}
+                  {user.role === "admin" && (
+                    <div className="flex gap-3 justify-end px-4 py-3 bg-secondary/20 border-t" onClick={(e) => e.stopPropagation()}>
+                      {record.status === "completed" && onResume && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="gap-2 text-navy border-navy/20 hover:bg-navy/10"
+                          onClick={() => onResume(record)}
+                        >
+                          <Edit className="size-4" />
+                          Düzenle
+                        </Button>
+                      )}
+                      <Button 
+                        variant="destructive" 
+                        size="sm" 
+                        className="gap-2"
+                        onClick={(e) => handleDeleteRecord(record.id, e)}
+                      >
+                        <Trash2 className="size-4" />
+                        Sil
+                      </Button>
+                    </div>
+                  )}
                 </Card>
               )
             })}
