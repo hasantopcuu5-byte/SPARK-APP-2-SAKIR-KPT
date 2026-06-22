@@ -54,17 +54,19 @@ export default function Page() {
     }
   }, [])
   // --- OFFLINE DURUM TAKİBİ BİTİŞİ ---
-  // Initialize auth and load current user on mount
+  // Initialize auth and load current user on mount (IndexedDB Uyumlu)
   useEffect(() => {
-    initializeUsers()
-    const user = getCurrentUser()
-    if (user) {
-      setCurrentUser(user)
-      setScreen("inspection")
-    } else {
-      setScreen("auth")
+    async function loadAuth() {
+      await initializeUsers()
+      const user = await getCurrentUser()
+      if (user) {
+        setScreen("inspection")
+      } else {
+        setScreen("auth")
+      }
+      setIsInitializing(false)
     }
-    setIsInitializing(false)
+    loadAuth()
   }, [])
 
   const totalCount = items.length
