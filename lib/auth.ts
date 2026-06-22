@@ -1,5 +1,5 @@
 import { db } from "./firebase"
-import { collection, addDoc, getDocs, query, orderBy, setDoc, doc } from "firebase/firestore"
+import { collection, addDoc, getDocs, query, orderBy, setDoc, doc } from "firebase/firestore/lite"
 
 // Authentication types and data
 export type User = {
