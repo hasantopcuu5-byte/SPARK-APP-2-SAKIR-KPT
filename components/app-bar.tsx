@@ -5,9 +5,9 @@ export function AppBar({ onHistoryClick, onLogout }: { onHistoryClick?: () => vo
   return (
     <header className="border-b border-white/10 bg-navy/90 backdrop-blur-xl">
       <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-4">
-        <div>
-          <h1 className="text-xl font-bold text-white">⚓ SPARK</h1>
-          <p className="text-xs text-navy-foreground/80">Inspection System</p>
+        <div className="flex flex-col items-center">
+          <img src="/spark_logo2.jpg" alt="Company Logo" className="h-12 object-contain mb-1" />
+          <p className="text-xs font-medium text-navy-foreground/80">Inspection System</p>
         </div>
         <div className="flex items-center gap-2">
           {onHistoryClick && (

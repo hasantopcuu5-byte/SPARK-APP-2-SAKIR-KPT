@@ -5,22 +5,39 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, LogOut } from "lucide-react"
 import type { User, InspectionRecord } from "@/lib/auth"
-import { getInspectionRecordsByUser, logout, setCurrentUser } from "@/lib/auth"
+import { fetchGlobalInspectionRecords, logout, setCurrentUser } from "@/lib/auth"
 import { useState, useEffect } from "react"
 import { SummaryBar } from "@/components/summary-bar"
 
 import { cn } from "@/lib/utils"
-import { Download, X } from "lucide-react"
+import { Download, X, History } from "lucide-react"
+import { PdfReport } from "@/components/pdf-report"
 
-export function HistoryScreen({ user, onBack }: { user: User; onBack: () => void }) {
+export function HistoryScreen({ user, onBack, onResume }: { user: User; onBack: () => void; onResume?: (record: any) => void }) {
   const [records, setRecords] = useState<InspectionRecord[]>([])
   const [selectedRecord, setSelectedRecord] = useState<InspectionRecord | null>(null)
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null)
 
+  const [isLoading, setIsLoading] = useState(true)
+
   useEffect(() => {
-    const userRecords = getInspectionRecordsByUser(user.id)
-    setRecords(userRecords)
-  }, [user.id])
+    const loadRecords = async () => {
+      setIsLoading(true)
+      const allRecords = await fetchGlobalInspectionRecords()
+      
+      // Sıralama: Önce in_progress olanlar, sonra createdAt'e göre azalan sırada
+      allRecords.sort((a, b) => {
+        if (a.status === "in_progress" && b.status !== "in_progress") return -1;
+        if (a.status !== "in_progress" && b.status === "in_progress") return 1;
+        
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+
+      setRecords(allRecords)
+      setIsLoading(false)
+    }
+    loadRecords()
+  }, [])
 
   const handleLogout = () => {
     logout()
@@ -40,8 +57,16 @@ export function HistoryScreen({ user, onBack }: { user: User; onBack: () => void
   if (selectedRecord) {
     const filledItems = (selectedRecord.items || []).filter((i: any) => i.status !== "select")
 
+    const photoMap: Record<number, string[]> = {}
+    selectedRecord.items?.forEach((item: any) => {
+      if (item.photos && item.photos.length > 0) {
+        photoMap[item.id] = item.photos
+      }
+    })
+
     return (
-      <div className="min-h-dvh bg-background pb-28">
+      <>
+      <div className="min-h-dvh bg-background pb-28 print:hidden">
         <div className="border-b bg-secondary/30">
           <div className="mx-auto flex max-w-2xl items-center gap-4 px-4 py-4">
             <Button
@@ -116,9 +141,24 @@ export function HistoryScreen({ user, onBack }: { user: User; onBack: () => void
           )}
         </main>
 
+        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/20 bg-navy/80 backdrop-blur-xl backdrop-saturate-150">
+          <div
+            className="mx-auto flex max-w-2xl items-center gap-2 px-4 py-3"
+            style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+          >
+            <Button
+              onClick={() => window.print()}
+              className="h-12 w-full flex-col gap-0.5 rounded-xl bg-gold font-semibold text-gold-foreground shadow-lg shadow-gold/20 hover:bg-gold/90"
+            >
+              <History className="size-5" />
+              <span className="text-[11px] font-semibold">PDF Rapor</span>
+            </Button>
+          </div>
+        </nav>
+
         {/* Photo Preview Modal */}
         {previewPhoto && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 p-4 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 p-4 backdrop-blur-sm print:hidden">
             <div className="absolute top-4 right-4 flex gap-4">
               <Button
                 variant="outline"
@@ -150,6 +190,19 @@ export function HistoryScreen({ user, onBack }: { user: User; onBack: () => void
           </div>
         )}
       </div>
+
+      {/* Native PDF Print Template */}
+      <div className="hidden print:block w-full">
+        <PdfReport 
+          items={selectedRecord.items || []}
+          photoMap={photoMap}
+          vesselName={selectedRecord.vesselName}
+          captainName={selectedRecord.captainName}
+          inspectionDate={selectedRecord.inspectionDate}
+          inspectorName={(selectedRecord as any).inspectorName || user.username}
+        />
+      </div>
+      </>
     )
   }
 
@@ -182,7 +235,12 @@ export function HistoryScreen({ user, onBack }: { user: User; onBack: () => void
           Geri Dön
         </Button>
 
-        {records.length === 0 ? (
+        {isLoading ? (
+          <Card className="flex flex-col items-center gap-3 rounded-2xl border border-dashed py-12 text-center">
+            <div className="size-8 animate-spin rounded-full border-4 border-navy border-t-transparent" />
+            <p className="text-sm text-muted-foreground">Kayıtlar yükleniyor...</p>
+          </Card>
+        ) : records.length === 0 ? (
           <Card className="flex flex-col items-center gap-3 rounded-2xl border border-dashed py-12 text-center">
             <p className="text-sm text-muted-foreground">Henüz denetim kaydı bulunmamaktadır.</p>
             <p className="text-xs text-muted-foreground">Yeni bir denetim tamamlayarak kayıt ekleyin.</p>
@@ -203,7 +261,13 @@ export function HistoryScreen({ user, onBack }: { user: User; onBack: () => void
                 <Card 
                   key={record.id} 
                   className="overflow-hidden p-0 transition-all hover:shadow-md mb-4 cursor-pointer hover:border-gold/50"
-                  onClick={() => setSelectedRecord(record)}
+                  onClick={() => {
+                    if (record.status === "in_progress" && onResume) {
+                      onResume(record)
+                    } else {
+                      setSelectedRecord(record)
+                    }
+                  }}
                 >
                   {/* Üst Kısım: Orijinal Gemi, Kaptan ve Tarih Bilgileri */}
                   <div className="p-4 pb-0">
@@ -214,7 +278,9 @@ export function HistoryScreen({ user, onBack }: { user: User; onBack: () => void
                           Kaptan: <span className="font-medium text-foreground">{record.captainName}</span>
                         </p>
                       </div>
-                      <Badge className="bg-status-ok/20 text-status-ok">{record.status}</Badge>
+                      <Badge className={record.status === "in_progress" ? "bg-status-observation/90 text-white" : "bg-status-ok/20 text-status-ok"}>
+                        {record.status === "in_progress" ? "In Progress" : "Completed"}
+                      </Badge>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 py-3 border-t border-secondary/50 mb-3">

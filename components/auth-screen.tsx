@@ -13,17 +13,17 @@ import type { User } from "@/lib/auth"
 export function AuthScreen({ onAuthSuccess }: { onAuthSuccess: (user: User) => void }) {
   const router = useRouter()
   const [tab, setTab] = useState<"login" | "admin">("login")
-  
+
   // Kullanıcı Girişi için
   const [loginUsername, setLoginUsername] = useState("")
   const [loginPassword, setLoginPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  
+
   // Admin Girişi için
   const [adminUsername, setAdminUsername] = useState("")
   const [adminPassword, setAdminPassword] = useState("")
   const [showAdminPassword, setShowAdminPassword] = useState(false)
-  
+
   const [error, setError] = useState("")
 
   useEffect(() => {
@@ -66,8 +66,8 @@ export function AuthScreen({ onAuthSuccess }: { onAuthSuccess: (user: User) => v
   return (
     <div className="min-h-dvh bg-gradient-to-br from-background via-secondary/30 to-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md gap-0 overflow-hidden p-0">
-        <div className="border-b bg-navy/10 px-6 py-4">
-          <h1 className="text-2xl font-bold text-foreground">⚓ SPARK App</h1>
+        <div className="flex flex-col items-center border-b bg-navy/10 px-6 py-4 text-center">
+          <img src="/spark_logo1.png" alt="Company Logo" className="h-12 w-auto object-contain mb-1" />
           <p className="text-sm text-muted-foreground">Gemi Denetim Sistemi</p>
         </div>
 
@@ -170,7 +170,7 @@ export function AuthScreen({ onAuthSuccess }: { onAuthSuccess: (user: User) => v
 
               {error && tab === "admin" && <p className="text-sm font-medium text-status-deficiency">{error}</p>}
 
-               <Button type="submit" className="h-11 rounded-lg bg-navy font-semibold text-white hover:bg-navy/90">
+              <Button type="submit" className="h-11 rounded-lg bg-navy font-semibold text-white hover:bg-navy/90">
                 Giriş Yap
               </Button>
             </form>

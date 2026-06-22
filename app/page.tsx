@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useRef } from "react"
 import { AppBar } from "@/components/app-bar"
 import { VesselDetails } from "@/components/vessel-details"
 
 import { Filters } from "@/components/filters"
+import { PdfReport } from "@/components/pdf-report"
 import { ChecklistItemCard } from "@/components/checklist-item-card"
 import { BottomNav } from "@/components/bottom-nav"
 import { AuthScreen } from "@/components/auth-screen"
@@ -28,6 +29,10 @@ export default function Page() {
   const [inspectionDate, setInspectionDate] = useState("")
   const [screen, setScreen] = useState<"auth" | "inspection" | "history">("auth")
   const [isInitializing, setIsInitializing] = useState(true)
+  const [activeRecordId, setActiveRecordId] = useState<string | null>(null)
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
+  const pdfRef = useRef<HTMLDivElement>(null)
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
 
   // Initialize auth and load current user on mount
   useEffect(() => {
@@ -89,6 +94,10 @@ export default function Page() {
     setStatus("all")
   }
 
+  function handleExportPdf() {
+    window.print()
+  }
+
   function handleSaveInspection() {
     if (!currentUser) {
       alert("Lütfen önce giriş yapınız")
@@ -100,23 +109,30 @@ export default function Page() {
       return
     }
 
+    setIsSaveModalOpen(true)
+  }
+
+  async function confirmSaveInspection(status: "completed" | "in_progress") {
+    setIsSaveModalOpen(false)
+
     const itemsWithPhotos = items.map((item) => ({
       ...item,
       photos: photoMap[item.id] ?? [],
     }))
 
-    saveInspectionRecord(
-      currentUser.id,
-      currentUser.username,
+    await saveInspectionRecord(
+      currentUser!.id,
+      currentUser!.username,
       vesselName,
       captainName,
       inspectionDate,
       itemsWithPhotos,
+      status,
+      activeRecordId || undefined
     )
 
-    alert("✅ Denetim başarıyla kaydedildi!")
+    alert(status === "completed" ? "✅ Denetim başarıyla tamamlandı!" : "✅ Denetim taslak olarak kaydedildi!")
 
-    // Reset form
     setItems(initialItems)
     setPhotoMap({})
     setUploadingMap({})
@@ -127,6 +143,29 @@ export default function Page() {
     setCaptainName("")
     setInspectionDate("")
     setTab("checklist")
+    setActiveRecordId(null)
+  }
+
+  function handleResumeRecord(record: any) {
+    setVesselName(record.vesselName)
+    setCaptainName(record.captainName)
+    setInspectionDate(record.inspectionDate)
+    
+    setItems(record.items.map((i: any) => ({
+      ...i,
+      photos: undefined 
+    })))
+    
+    const newPhotoMap: Record<number, string[]> = {}
+    record.items.forEach((item: any) => {
+      if (item.photos && item.photos.length > 0) {
+        newPhotoMap[item.id] = item.photos
+      }
+    })
+    setPhotoMap(newPhotoMap)
+    
+    setActiveRecordId(record.id)
+    setScreen("inspection")
   }
 
   if (isInitializing) {
@@ -157,6 +196,7 @@ export default function Page() {
         onBack={() => {
           setScreen("inspection")
         }}
+        onResume={handleResumeRecord}
       />
     )
   }
@@ -164,67 +204,113 @@ export default function Page() {
   // Inspection Screen
   return (
     <div className="min-h-dvh bg-background pb-28">
-      <AppBar onHistoryClick={() => setScreen("history")} onLogout={() => setScreen("auth")} />
+      {/* Main App Layout (Hidden during print) */}
+      <div className="print:hidden">
+        <AppBar onHistoryClick={() => setScreen("history")} onLogout={() => setScreen("auth")} />
 
-      <main className="mx-auto flex max-w-2xl flex-col gap-5 px-4 py-5">
-        <VesselDetails
-          vesselName={vesselName}
-          onVesselChange={setVesselName}
-          captainName={captainName}
-          onCaptainChange={setCaptainName}
-          inspectionDate={inspectionDate}
-          onDateChange={setInspectionDate}
+        <main className="mx-auto flex max-w-2xl flex-col gap-5 px-4 py-5">
+          <VesselDetails
+            vesselName={vesselName}
+            onVesselChange={setVesselName}
+            captainName={captainName}
+            onCaptainChange={setCaptainName}
+            inspectionDate={inspectionDate}
+            onDateChange={setInspectionDate}
+          />
+
+          <Tabs value={tab} onValueChange={setTab} className="gap-5">
+            <TabsList className="grid h-11 w-full grid-cols-1 rounded-xl bg-secondary/60 p-1">
+              <TabsTrigger value="checklist" className="rounded-lg text-sm font-medium">
+                Checklist
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="checklist" className="flex flex-col gap-5">
+              <Filters
+                search={search}
+                onSearch={setSearch}
+                section={section}
+                onSection={setSection}
+                status={status}
+                onStatus={setStatus}
+                onReset={resetFilters}
+              />
+
+              <div className="flex flex-col gap-4">
+                {filtered.length > 0 ? (
+                  filtered.map((item) => (
+                    <ChecklistItemCard
+                      key={item.id}
+                      item={item}
+                      photos={photoMap[item.id] ?? []}
+                      isUploading={uploadingMap[item.id] ?? false}
+                      onStatus={updateStatus}
+                      onRemarks={updateRemarks}
+                      onPhotosChange={updatePhotos}
+                      onUploadingChange={setUploading}
+                    />
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed py-12 text-center">
+                    <SearchX className="size-8 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Aradığınız kriterlere uygun madde bulunamadı.</p>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </main>
+
+        <BottomNav
+          onReport={() => { }}
+          onSave={handleSaveInspection}
+          onPdf={handleExportPdf}
         />
+      </div>
 
+      {/* Native PDF Print Template */}
+      <div className="hidden print:block w-full">
+        <PdfReport 
+          ref={pdfRef}
+          items={items}
+          photoMap={photoMap}
+          vesselName={vesselName}
+          captainName={captainName}
+          inspectionDate={inspectionDate}
+          inspectorName={currentUser?.username || "Unknown"}
+        />
+      </div>
 
-        <Tabs value={tab} onValueChange={setTab} className="gap-5">
-          <TabsList className="grid h-11 w-full grid-cols-1 rounded-xl bg-secondary/60 p-1">
-            <TabsTrigger value="checklist" className="rounded-lg text-sm font-medium">
-              Checklist
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="checklist" className="flex flex-col gap-5">
-            <Filters
-              search={search}
-              onSearch={setSearch}
-              section={section}
-              onSection={setSection}
-              status={status}
-              onStatus={setStatus}
-              onReset={resetFilters}
-            />
-
-            <div className="flex flex-col gap-4">
-              {filtered.length > 0 ? (
-                filtered.map((item) => (
-                  <ChecklistItemCard
-                    key={item.id}
-                    item={item}
-                    photos={photoMap[item.id] ?? []}
-                    isUploading={uploadingMap[item.id] ?? false}
-                    onStatus={updateStatus}
-                    onRemarks={updateRemarks}
-                    onPhotosChange={updatePhotos}
-                    onUploadingChange={setUploading}
-                  />
-                ))
-              ) : (
-                <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed py-12 text-center">
-                  <SearchX className="size-8 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Aradığınız kriterlere uygun madde bulunamadı.</p>
-                </div>
-              )}
+      {isSaveModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-background rounded-2xl p-6 w-full max-w-sm shadow-xl flex flex-col gap-6">
+            <h3 className="text-xl font-bold text-center text-foreground">Denetimi Kaydet</h3>
+            <p className="text-sm text-center text-muted-foreground">
+              Denetimi tamamlamak mı istiyorsunuz, yoksa daha sonra devam etmek üzere mi kaydetmek istiyorsunuz?
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => confirmSaveInspection("completed")}
+                className="w-full py-3 rounded-xl bg-status-deficiency text-white font-semibold shadow-md hover:opacity-90 transition-opacity"
+              >
+                Inspection'u tamamla
+              </button>
+              <button
+                onClick={() => confirmSaveInspection("in_progress")}
+                className="w-full py-3 rounded-xl bg-status-observation text-white font-semibold shadow-md hover:opacity-90 transition-opacity"
+              >
+                Daha sonra devam etmek üzere kaydet
+              </button>
+              <button
+                onClick={() => setIsSaveModalOpen(false)}
+                className="w-full py-2 mt-2 rounded-xl bg-transparent border border-muted text-muted-foreground font-medium hover:bg-secondary/30 transition-colors"
+              >
+                İptal
+              </button>
             </div>
-          </TabsContent>
-        </Tabs>
-      </main>
-
-      <BottomNav
-        onReport={() => { }}
-        onSave={handleSaveInspection}
-        onPdf={() => { }}
-      />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

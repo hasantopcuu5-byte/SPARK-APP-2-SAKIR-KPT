@@ -1,3 +1,6 @@
+import { db } from "./firebase"
+import { collection, addDoc, getDocs, query, orderBy, setDoc, doc } from "firebase/firestore"
+
 // Authentication types and data
 export type User = {
   id: string
@@ -16,7 +19,7 @@ export type InspectionRecord = {
   vesselName: string
   captainName: string
   inspectionDate: string
-  status: "completed" | "draft"
+  status: "completed" | "in_progress"
   items: any[]
   createdAt: string
   updatedAt: string
@@ -131,32 +134,69 @@ export function updateUser(userId: string, updates: Partial<User>): boolean {
 }
 
 // Save inspection record
-export function saveInspectionRecord(
+export async function saveInspectionRecord(
   userId: string,
   username: string,
   vesselName: string,
   captainName: string,
   inspectionDate: string,
   items: any[],
-): InspectionRecord {
-  const records = getInspectionRecords()
-
+  status: "completed" | "in_progress" = "completed",
+  recordId?: string
+): Promise<InspectionRecord> {
+  const id = recordId || `inspection-${Date.now()}`;
+  
   const newRecord: InspectionRecord = {
-    id: `inspection-${Date.now()}`,
+    id,
     userId,
     username,
     vesselName,
     captainName,
     inspectionDate,
-    status: "completed",
+    status,
     items,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
 
-  records.push(newRecord)
+  // Firebase'e kaydet veya güncelle
+  try {
+    await setDoc(doc(db, "inspection_records", id), newRecord);
+    console.log("Document written/updated with ID: ", id);
+  } catch (e) {
+    console.error("Error adding document: ", e);
+  }
+
+  // Lokal depolamayı güncelle
+  const records = getInspectionRecords()
+  const existingIndex = records.findIndex(r => r.id === id)
+  if (existingIndex >= 0) {
+    // Keep original createdAt if updating
+    newRecord.createdAt = records[existingIndex].createdAt
+    records[existingIndex] = newRecord
+  } else {
+    records.push(newRecord)
+  }
   localStorage.setItem(STORAGE_KEYS.INSPECTION_RECORDS, JSON.stringify(records))
+  
   return newRecord
+}
+
+// Fetch all inspection records from Firestore
+export async function fetchGlobalInspectionRecords(): Promise<InspectionRecord[]> {
+  try {
+    const q = query(collection(db, "inspection_records"), orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(q);
+    const records: InspectionRecord[] = [];
+    querySnapshot.forEach((doc) => {
+      records.push(doc.data() as InspectionRecord);
+    });
+    return records;
+  } catch (error) {
+    console.error("Error fetching inspection records:", error);
+    // Firebase başarısız olursa lokaldekileri döndür
+    return getInspectionRecords();
+  }
 }
 
 // Get all inspection records
