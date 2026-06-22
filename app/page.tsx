@@ -13,7 +13,7 @@ import { HistoryScreen } from "@/components/history-screen"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { initialItems, type ChecklistItem, type Status } from "@/lib/inspection-data"
 import { getCurrentUser, initializeUsers, saveInspectionRecord, type User } from "@/lib/auth"
-import { SearchX } from "lucide-react"
+import { SearchX, Wifi, WifiOff } from "lucide-react"
 
 export default function Page() {
   const [currentUser, setCurrentUser] = useState<User | null>(null)
@@ -33,7 +33,26 @@ export default function Page() {
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
   const pdfRef = useRef<HTMLDivElement>(null)
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
+  // --- OFFLINE DURUM TAKİBİ BAŞLANGICI ---
+  const [isOnline, setIsOnline] = useState(true)
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsOnline(navigator.onLine)
+
+      const goOnline = () => setIsOnline(true)
+      const goOffline = () => setIsOnline(false)
+
+      window.addEventListener("online", goOnline)
+      window.addEventListener("offline", goOffline)
+
+      return () => {
+        window.removeEventListener("online", goOnline)
+        window.removeEventListener("offline", goOffline)
+      }
+    }
+  }, [])
+  // --- OFFLINE DURUM TAKİBİ BİTİŞİ ---
   // Initialize auth and load current user on mount
   useEffect(() => {
     initializeUsers()
@@ -150,12 +169,12 @@ export default function Page() {
     setVesselName(record.vesselName)
     setCaptainName(record.captainName)
     setInspectionDate(record.inspectionDate)
-    
+
     setItems(record.items.map((i: any) => ({
       ...i,
-      photos: undefined 
+      photos: undefined
     })))
-    
+
     const newPhotoMap: Record<number, string[]> = {}
     record.items.forEach((item: any) => {
       if (item.photos && item.photos.length > 0) {
@@ -163,7 +182,7 @@ export default function Page() {
       }
     })
     setPhotoMap(newPhotoMap)
-    
+
     setActiveRecordId(record.id)
     setScreen("inspection")
   }
@@ -207,7 +226,18 @@ export default function Page() {
       {/* Main App Layout (Hidden during print) */}
       <div className="print:hidden">
         <AppBar onHistoryClick={() => setScreen("history")} onLogout={() => setScreen("auth")} />
-
+        {/* İNTERNET BAĞLANTI DURUM BARLARI */}
+        {!isOnline ? (
+          <div className="bg-status-observation text-white text-center py-2 px-4 text-xs font-semibold flex items-center justify-center gap-2 animate-pulse sticky top-0 z-50 shadow-md">
+            <WifiOff className="size-4" />
+            İnternet Bağlantısı Yok. Denetim Güvenle Telefona Kaydediliyor (Offline Mod).
+          </div>
+        ) : (
+          <div className="bg-status-ok text-white text-center py-1.5 px-4 text-xs font-medium flex items-center justify-center gap-2 sticky top-0 z-50 shadow-sm transition-all duration-500">
+            <Wifi className="size-3.5" />
+            Cihaz Çevrimiçi. Veriler Bulutla Eşitleniyor...
+          </div>
+        )}
         <main className="mx-auto flex max-w-2xl flex-col gap-5 px-4 py-5">
           <VesselDetails
             vesselName={vesselName}
@@ -270,7 +300,7 @@ export default function Page() {
 
       {/* Native PDF Print Template */}
       <div className="hidden print:block w-full">
-        <PdfReport 
+        <PdfReport
           ref={pdfRef}
           items={items}
           photoMap={photoMap}
