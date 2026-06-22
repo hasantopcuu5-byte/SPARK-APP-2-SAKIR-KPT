@@ -24,7 +24,7 @@ export function HistoryScreen({ user, onBack, onResume }: { user: User; onBack: 
   const handleDeleteRecord = async (recordId: string, e: React.MouseEvent) => {
     e.stopPropagation()
     if (!window.confirm("Bu kaydı kalıcı olarak silmek istediğinize emin misiniz?")) return
-    
+
     setIsLoading(true)
     await deleteInspectionRecord(recordId)
     setRecords(records.filter((r) => r.id !== recordId))
@@ -38,12 +38,12 @@ export function HistoryScreen({ user, onBack, onResume }: { user: User; onBack: 
     const loadRecords = async () => {
       setIsLoading(true)
       const allRecords = await fetchGlobalInspectionRecords()
-      
+
       // Sıralama: Önce in_progress olanlar, sonra createdAt'e göre azalan sırada
       allRecords.sort((a, b) => {
         if (a.status === "in_progress" && b.status !== "in_progress") return -1;
         if (a.status !== "in_progress" && b.status === "in_progress") return 1;
-        
+
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
 
@@ -53,9 +53,9 @@ export function HistoryScreen({ user, onBack, onResume }: { user: User; onBack: 
     loadRecords()
   }, [])
 
-  const handleLogout = () => {
-    logout()
-    setCurrentUser(null)
+  const handleLogout = async () => {
+    await logout()
+    await setCurrentUser(null)
     onBack()
   }
 
@@ -80,142 +80,142 @@ export function HistoryScreen({ user, onBack, onResume }: { user: User; onBack: 
 
     return (
       <>
-      <div className="min-h-dvh bg-background pb-28 print:hidden">
-        <div className="border-b bg-secondary/30">
-          <div className="mx-auto flex max-w-2xl items-center gap-4 px-4 py-4">
-            <Button
-              onClick={() => setSelectedRecord(null)}
-              variant="ghost"
-              size="icon"
-              className="text-muted-foreground hover:text-foreground shrink-0"
-            >
-              <ChevronLeft className="size-5" />
-            </Button>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-xl font-bold text-foreground truncate">{selectedRecord.vesselName} Denetimi</h1>
-              <p className="text-sm text-muted-foreground truncate">Tarih: {new Date(selectedRecord.inspectionDate).toLocaleDateString("tr-TR")}</p>
+        <div className="min-h-dvh bg-background pb-28 print:hidden">
+          <div className="border-b bg-secondary/30">
+            <div className="mx-auto flex max-w-2xl items-center gap-4 px-4 py-4">
+              <Button
+                onClick={() => setSelectedRecord(null)}
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-foreground shrink-0"
+              >
+                <ChevronLeft className="size-5" />
+              </Button>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xl font-bold text-foreground truncate">{selectedRecord.vesselName} Denetimi</h1>
+                <p className="text-sm text-muted-foreground truncate">Tarih: {new Date(selectedRecord.inspectionDate).toLocaleDateString("tr-TR")}</p>
+              </div>
             </div>
           </div>
-        </div>
-        <main className="mx-auto flex max-w-2xl flex-col gap-5 px-4 py-5">
-          {filledItems.length === 0 ? (
-            <Card className="flex flex-col items-center gap-3 rounded-2xl border border-dashed py-12 text-center">
-              <p className="text-sm text-muted-foreground">Bu denetimde doldurulmuş madde bulunmamaktadır.</p>
-            </Card>
-          ) : (
-            <div className="flex flex-col gap-4">
-              <h2 className="font-semibold text-lg text-foreground px-1">Doldurulan Maddeler ({filledItems.length})</h2>
-              {filledItems.map((item: any) => (
-                <Card key={item.id} className="p-4 flex flex-col gap-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm font-bold text-gold">Madde {item.id}</span>
-                      <Badge variant="secondary" className="rounded-full bg-navy/8 text-[11px] font-medium text-navy">
-                        {item.section}
+          <main className="mx-auto flex max-w-2xl flex-col gap-5 px-4 py-5">
+            {filledItems.length === 0 ? (
+              <Card className="flex flex-col items-center gap-3 rounded-2xl border border-dashed py-12 text-center">
+                <p className="text-sm text-muted-foreground">Bu denetimde doldurulmuş madde bulunmamaktadır.</p>
+              </Card>
+            ) : (
+              <div className="flex flex-col gap-4">
+                <h2 className="font-semibold text-lg text-foreground px-1">Doldurulan Maddeler ({filledItems.length})</h2>
+                {filledItems.map((item: any) => (
+                  <Card key={item.id} className="p-4 flex flex-col gap-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-sm font-bold text-gold">Madde {item.id}</span>
+                        <Badge variant="secondary" className="rounded-full bg-navy/8 text-[11px] font-medium text-navy">
+                          {item.section}
+                        </Badge>
+                      </div>
+                      <Badge variant="outline" className={cn("text-xs font-semibold capitalize",
+                        item.status === "ok" ? "text-status-ok border-status-ok/30 bg-status-ok/10" :
+                          item.status === "deficiency" ? "text-status-deficiency border-status-deficiency/30 bg-status-deficiency/10" :
+                            item.status === "observation" ? "text-status-observation border-status-observation/30 bg-status-observation/10" :
+                              "text-muted-foreground border-border bg-muted"
+                      )}>
+                        {item.status}
                       </Badge>
                     </div>
-                    <Badge variant="outline" className={cn("text-xs font-semibold capitalize", 
-                      item.status === "ok" ? "text-status-ok border-status-ok/30 bg-status-ok/10" : 
-                      item.status === "deficiency" ? "text-status-deficiency border-status-deficiency/30 bg-status-deficiency/10" : 
-                      item.status === "observation" ? "text-status-observation border-status-observation/30 bg-status-observation/10" : 
-                      "text-muted-foreground border-border bg-muted"
-                    )}>
-                      {item.status}
-                    </Badge>
-                  </div>
-                  <p className="text-[15px] font-medium text-foreground">{item.question}</p>
-                  
-                  {item.remarks && (
-                    <div className="rounded-xl bg-secondary/30 p-3 text-sm text-muted-foreground mt-1">
-                      <span className="block text-xs font-bold uppercase tracking-wider mb-1.5 text-foreground/70">Açıklama / Bulgu</span>
-                      {item.remarks}
-                    </div>
-                  )}
-                  
-                  {item.photos && item.photos.length > 0 && (
-                    <div className="mt-1">
-                      <span className="block text-xs font-bold uppercase tracking-wider mb-2 text-foreground/70">Fotoğraflar</span>
-                      <div className="flex gap-2 overflow-x-auto pb-2 touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                        {item.photos.map((photo: string, idx: number) => (
-                          <div 
-                            key={idx} 
-                            className="relative size-20 shrink-0 overflow-hidden rounded-xl border bg-secondary/40 cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => setPreviewPhoto(photo)}
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={photo} alt={`Fotoğraf ${idx+1}`} className="size-full object-cover" />
-                          </div>
-                        ))}
+                    <p className="text-[15px] font-medium text-foreground">{item.question}</p>
+
+                    {item.remarks && (
+                      <div className="rounded-xl bg-secondary/30 p-3 text-sm text-muted-foreground mt-1">
+                        <span className="block text-xs font-bold uppercase tracking-wider mb-1.5 text-foreground/70">Açıklama / Bulgu</span>
+                        {item.remarks}
                       </div>
-                    </div>
-                  )}
-                </Card>
-              ))}
+                    )}
+
+                    {item.photos && item.photos.length > 0 && (
+                      <div className="mt-1">
+                        <span className="block text-xs font-bold uppercase tracking-wider mb-2 text-foreground/70">Fotoğraflar</span>
+                        <div className="flex gap-2 overflow-x-auto pb-2 touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                          {item.photos.map((photo: string, idx: number) => (
+                            <div
+                              key={idx}
+                              className="relative size-20 shrink-0 overflow-hidden rounded-xl border bg-secondary/40 cursor-pointer hover:opacity-80 transition-opacity"
+                              onClick={() => setPreviewPhoto(photo)}
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={photo} alt={`Fotoğraf ${idx + 1}`} className="size-full object-cover" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            )}
+          </main>
+
+          <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/20 bg-navy/80 backdrop-blur-xl backdrop-saturate-150">
+            <div
+              className="mx-auto flex max-w-2xl items-center gap-2 px-4 py-3"
+              style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+            >
+              <Button
+                onClick={() => window.print()}
+                className="h-12 w-full flex-col gap-0.5 rounded-xl bg-gold font-semibold text-gold-foreground shadow-lg shadow-gold/20 hover:bg-gold/90"
+              >
+                <History className="size-5" />
+                <span className="text-[11px] font-semibold">PDF Rapor</span>
+              </Button>
+            </div>
+          </nav>
+
+          {/* Photo Preview Modal */}
+          {previewPhoto && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 p-4 backdrop-blur-sm print:hidden">
+              <div className="absolute top-4 right-4 flex gap-4">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleDownloadPhoto(previewPhoto)}
+                  className="rounded-full bg-background/50 hover:bg-background"
+                  title="İndir"
+                >
+                  <Download className="size-5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setPreviewPhoto(null)}
+                  className="rounded-full bg-background/50 hover:bg-background"
+                  title="Kapat"
+                >
+                  <X className="size-5" />
+                </Button>
+              </div>
+              <div className="relative max-h-full max-w-full rounded-lg overflow-hidden flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewPhoto}
+                  alt="Büyük Önizleme"
+                  className="max-h-[85vh] max-w-[95vw] object-contain"
+                />
+              </div>
             </div>
           )}
-        </main>
+        </div>
 
-        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/20 bg-navy/80 backdrop-blur-xl backdrop-saturate-150">
-          <div
-            className="mx-auto flex max-w-2xl items-center gap-2 px-4 py-3"
-            style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
-          >
-            <Button
-              onClick={() => window.print()}
-              className="h-12 w-full flex-col gap-0.5 rounded-xl bg-gold font-semibold text-gold-foreground shadow-lg shadow-gold/20 hover:bg-gold/90"
-            >
-              <History className="size-5" />
-              <span className="text-[11px] font-semibold">PDF Rapor</span>
-            </Button>
-          </div>
-        </nav>
-
-        {/* Photo Preview Modal */}
-        {previewPhoto && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 p-4 backdrop-blur-sm print:hidden">
-            <div className="absolute top-4 right-4 flex gap-4">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleDownloadPhoto(previewPhoto)}
-                className="rounded-full bg-background/50 hover:bg-background"
-                title="İndir"
-              >
-                <Download className="size-5" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setPreviewPhoto(null)}
-                className="rounded-full bg-background/50 hover:bg-background"
-                title="Kapat"
-              >
-                <X className="size-5" />
-              </Button>
-            </div>
-            <div className="relative max-h-full max-w-full rounded-lg overflow-hidden flex items-center justify-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img 
-                src={previewPhoto} 
-                alt="Büyük Önizleme" 
-                className="max-h-[85vh] max-w-[95vw] object-contain" 
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Native PDF Print Template */}
-      <div className="hidden print:block w-full">
-        <PdfReport 
-          items={selectedRecord.items || []}
-          photoMap={photoMap}
-          vesselName={selectedRecord.vesselName}
-          captainName={selectedRecord.captainName}
-          inspectionDate={selectedRecord.inspectionDate}
-          inspectorName={(selectedRecord as any).inspectorName || user.username}
-        />
-      </div>
+        {/* Native PDF Print Template */}
+        <div className="hidden print:block w-full">
+          <PdfReport
+            items={selectedRecord.items || []}
+            photoMap={photoMap}
+            vesselName={selectedRecord.vesselName}
+            captainName={selectedRecord.captainName}
+            inspectionDate={selectedRecord.inspectionDate}
+            inspectorName={(selectedRecord as any).inspectorName || user.username}
+          />
+        </div>
       </>
     )
   }
@@ -272,8 +272,8 @@ export function HistoryScreen({ user, onBack, onResume }: { user: User; onBack: 
               const photosCount = items.reduce((sum: number, i: any) => sum + (i.photos?.length || 0), 0)
 
               return (
-                <Card 
-                  key={record.id} 
+                <Card
+                  key={record.id}
                   className="overflow-hidden p-0 transition-all hover:shadow-md mb-4 cursor-pointer hover:border-gold/50"
                   onClick={() => {
                     if (record.status === "in_progress" && onResume) {
@@ -329,9 +329,9 @@ export function HistoryScreen({ user, onBack, onResume }: { user: User; onBack: 
                   {user.role === "admin" && (
                     <div className="flex gap-3 justify-end px-4 py-3 bg-secondary/20 border-t" onClick={(e) => e.stopPropagation()}>
                       {record.status === "completed" && onResume && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           className="gap-2 text-navy border-navy/20 hover:bg-navy/10"
                           onClick={() => onResume(record)}
                         >
@@ -339,9 +339,9 @@ export function HistoryScreen({ user, onBack, onResume }: { user: User; onBack: 
                           Düzenle
                         </Button>
                       )}
-                      <Button 
-                        variant="destructive" 
-                        size="sm" 
+                      <Button
+                        variant="destructive"
+                        size="sm"
                         className="gap-2"
                         onClick={(e) => handleDeleteRecord(record.id, e)}
                       >

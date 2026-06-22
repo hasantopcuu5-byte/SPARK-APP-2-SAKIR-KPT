@@ -30,8 +30,8 @@ export function AuthScreen({ onAuthSuccess }: { onAuthSuccess: (user: User) => v
     initializeUsers()
   }, [])
 
-  // Kullanıcı Giriş İşlemi
-  const handleLogin = (e: React.FormEvent) => {
+  // Kullanıcı Giriş İşlemi (IndexedDB için ASENKRON hale getirildi)
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
 
@@ -40,22 +40,23 @@ export function AuthScreen({ onAuthSuccess }: { onAuthSuccess: (user: User) => v
       return
     }
 
-    const user = getUserByUsername(loginUsername)
+    // Promise yapısını çözmek için await eklendi
+    const user = await getUserByUsername(loginUsername)
     if (!user || user.password !== loginPassword) {
       setError("Hatalı kullanıcı adı veya şifre")
       return
     }
 
-    setCurrentUser(user)
+    // Promise yapısını çözmek için await eklendi
+    await setCurrentUser(user)
     onAuthSuccess(user)
   }
 
-  // Admin Giriş İşlemi (Yeni Sayfaya Yönlendirir)
+  // Admin Giriş İşlemi
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
 
-    // Admin şifresini şimdilik admin / 1234 yaptık. Değiştirebilirsin.
     if (adminUsername === "admin" && adminPassword === "1234") {
       router.push("/adminpage")
     } else {
@@ -73,7 +74,6 @@ export function AuthScreen({ onAuthSuccess }: { onAuthSuccess: (user: User) => v
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as "login" | "admin")} className="w-full">
           <TabsList className="grid w-full grid-cols-2 rounded-none border-b bg-transparent p-0">
-            {/* Sekme İsimleri Değişti */}
             <TabsTrigger
               value="login"
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-gold data-[state=active]:bg-transparent"
@@ -90,7 +90,6 @@ export function AuthScreen({ onAuthSuccess }: { onAuthSuccess: (user: User) => v
             </TabsTrigger>
           </TabsList>
 
-          {/* KULLANICI GİRİŞİ BÖLÜMÜ */}
           <TabsContent value="login" className="gap-4 p-6">
             <form onSubmit={handleLogin} className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
@@ -133,7 +132,6 @@ export function AuthScreen({ onAuthSuccess }: { onAuthSuccess: (user: User) => v
             </form>
           </TabsContent>
 
-          {/* ADMİN GİRİŞİ BÖLÜMÜ (YENİ) */}
           <TabsContent value="admin" className="gap-4 p-6">
             <form onSubmit={handleAdminLogin} className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
