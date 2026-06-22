@@ -1,4 +1,6 @@
-function readFileAsDataUrl(file: File): Promise<string> {
+import imageCompression from "browser-image-compression"
+
+function fileToBase64(file: File | Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => resolve(reader.result as string)
@@ -7,39 +9,23 @@ function readFileAsDataUrl(file: File): Promise<string> {
   })
 }
 
-function loadImage(src: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => resolve(img)
-    img.onerror = () => reject(new Error("Failed to load image"))
-    img.src = src
-  })
-}
-
 export async function resizeImageToDataUrl(
   file: File,
   options?: { maxWidth?: number; maxHeight?: number; quality?: number },
 ): Promise<string> {
-  const { maxWidth = 1280, maxHeight = 1280, quality = 0.82 } = options ?? {}
+  const { maxWidth = 1024, maxHeight = 1024, quality = 0.7 } = options ?? {}
 
   try {
-    const dataUrl = await readFileAsDataUrl(file)
-    const img = await loadImage(dataUrl)
-
-    const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1)
-    const width = Math.round(img.width * scale)
-    const height = Math.round(img.height * scale)
-
-    const canvas = document.createElement("canvas")
-    canvas.width = width
-    canvas.height = height
-
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return dataUrl
-
-    ctx.drawImage(img, 0, 0, width, height)
-    return canvas.toDataURL("image/jpeg", quality)
-  } catch {
-    return readFileAsDataUrl(file)
+    const compressedFile = await imageCompression(file, {
+      maxSizeMB: 0.2, // ~200KB
+      maxWidthOrHeight: Math.max(maxWidth, maxHeight),
+      useWebWorker: true,
+      initialQuality: quality
+    })
+    
+    return await fileToBase64(compressedFile)
+  } catch (error) {
+    console.error("Image compression error:", error)
+    return fileToBase64(file)
   }
 }

@@ -1,5 +1,6 @@
 import { db } from "./firebase"
 import { collection, addDoc, getDocs, query, orderBy, setDoc, doc, deleteDoc } from "firebase/firestore/lite"
+import { get, set } from "idb-keyval"
 
 // Authentication types and data
 export type User = {
@@ -183,23 +184,20 @@ export async function saveInspectionRecord(
     updatedAt: new Date().toISOString(),
   }
 
-  // Firebase'e kaydet veya güncelle
-  try {
-    await setDoc(doc(db, "inspection_records", id), newRecord);
-    console.log("Document written/updated with ID: ", id);
-  } catch (e) {
-    console.error("Error adding document: ", e);
-  }
+  // Firebase'e beklemeden yaz (offline ise donmayı engeller)
+  setDoc(doc(db, "inspection_records", id), newRecord)
+    .then(() => console.log("Document locally written/updated with ID: ", id))
+    .catch((e) => console.error("Error adding document: ", e));
 
   // Lokal depolamayı güncelle
-  const records = getInspectionRecords()
+  const records = await getInspectionRecords()
   const existingIndex = records.findIndex(r => r.id === id)
   if (existingIndex >= 0) {
     records[existingIndex] = newRecord
   } else {
     records.push(newRecord)
   }
-  localStorage.setItem(STORAGE_KEYS.INSPECTION_RECORDS, JSON.stringify(records))
+  await set(STORAGE_KEYS.INSPECTION_RECORDS, JSON.stringify(records))
   
   return newRecord
 }
@@ -215,11 +213,11 @@ export async function deleteInspectionRecord(recordId: string): Promise<boolean>
   }
 
   // Lokal depolamayı güncelle
-  const records = getInspectionRecords()
+  const records = await getInspectionRecords()
   const filtered = records.filter((r) => r.id !== recordId)
   if (filtered.length === records.length) return false
 
-  localStorage.setItem(STORAGE_KEYS.INSPECTION_RECORDS, JSON.stringify(filtered))
+  await set(STORAGE_KEYS.INSPECTION_RECORDS, JSON.stringify(filtered))
   return true
 }
 
@@ -240,13 +238,13 @@ export async function fetchGlobalInspectionRecords(): Promise<InspectionRecord[]
   } catch (error) {
     console.error("Error fetching inspection records:", error);
     // Firebase başarısız olursa lokaldekileri döndür
-    return getInspectionRecords();
+    return await getInspectionRecords();
   }
 }
 
 // Get all inspection records
-export function getInspectionRecords(): InspectionRecord[] {
-  const recordsStr = localStorage.getItem(STORAGE_KEYS.INSPECTION_RECORDS)
+export async function getInspectionRecords(): Promise<InspectionRecord[]> {
+  const recordsStr = await get<string>(STORAGE_KEYS.INSPECTION_RECORDS)
   if (!recordsStr) return []
   
   try {
@@ -262,8 +260,8 @@ export function getInspectionRecords(): InspectionRecord[] {
 }
 
 // Get inspection records by user
-export function getInspectionRecordsByUser(userId: string): InspectionRecord[] {
-  const records = getInspectionRecords()
+export async function getInspectionRecordsByUser(userId: string): Promise<InspectionRecord[]> {
+  const records = await getInspectionRecords()
   return records.filter((r) => r.userId === userId)
 }
 
