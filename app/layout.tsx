@@ -11,6 +11,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'SPARK | Vessel Inspection',
   description: 'Mobile vessel inspection checklist for maritime inspectors',
+  manifest: "/manifest.json", // Bu satırı ekliyoruz
   generator: 'v0.app',
   appleWebApp: {
     capable: true,

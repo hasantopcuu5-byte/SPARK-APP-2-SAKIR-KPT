@@ -49,6 +49,14 @@ export default function Page() {
       window.addEventListener("online", goOnline)
       window.addEventListener("offline", goOffline)
 
+      // --- PWA SERVICE WORKER KAYDI ---
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .register("/sw.js")
+          .then((reg) => console.log("PWA Altyapısı Başarıyla Aktif Edildi. Kapsam:", reg.scope))
+          .catch((err) => console.error("PWA Altyapı Kaydı Başarısız:", err))
+      }
+
       return () => {
         window.removeEventListener("online", goOnline)
         window.removeEventListener("offline", goOffline)
