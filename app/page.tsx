@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState, useRef } from "react"
 import { AppBar } from "@/components/app-bar"
 import { VesselDetails } from "@/components/vessel-details"
-
 import { Filters } from "@/components/filters"
 import { PdfReport } from "@/components/pdf-report"
 import { ChecklistItemCard } from "@/components/checklist-item-card"
@@ -12,7 +11,7 @@ import { AuthScreen } from "@/components/auth-screen"
 import { HistoryScreen } from "@/components/history-screen"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { initialItems, type ChecklistItem, type Status } from "@/lib/inspection-data"
-import { getCurrentUser, initializeUsers, saveInspectionRecord, type User } from "@/lib/auth"
+import { getCurrentUser, initializeUsers, saveInspectionRecord, syncOfflineRecords, type User } from "@/lib/auth"
 import { SearchX, Wifi, WifiOff } from "lucide-react"
 
 export default function Page() {
@@ -30,18 +29,21 @@ export default function Page() {
   const [screen, setScreen] = useState<"auth" | "inspection" | "history">("auth")
   const [isInitializing, setIsInitializing] = useState(true)
   const [activeRecordId, setActiveRecordId] = useState<string | null>(null)
-  const [activeRecordCreatedAt, setActiveRecordCreatedAt] = useState<string | null>(null)
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
   const pdfRef = useRef<HTMLDivElement>(null)
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
-  // --- OFFLINE DURUM TAKİBİ BAŞLANGICI ---
+
+  // 1. ANLIK BAĞLANTI DURUM TAKİBİ
   const [isOnline, setIsOnline] = useState(true)
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       setIsOnline(navigator.onLine)
 
-      const goOnline = () => setIsOnline(true)
+      const goOnline = () => {
+        setIsOnline(true)
+        syncOfflineRecords() // İnternet geldiği an bekleyenleri otomatik eşitle
+      }
       const goOffline = () => setIsOnline(false)
 
       window.addEventListener("online", goOnline)
@@ -53,14 +55,16 @@ export default function Page() {
       }
     }
   }, [])
-  // --- OFFLINE DURUM TAKİBİ BİTİŞİ ---
-  // Initialize auth and load current user on mount (IndexedDB Uyumlu)
+
+  // 2. OTURUM VE ILK YÜKLEME BAŞLATICISI (IndexedDB Uyumlu)
   useEffect(() => {
     async function loadAuth() {
       await initializeUsers()
       const user = await getCurrentUser()
       if (user) {
+        setCurrentUser(user)
         setScreen("inspection")
+        syncOfflineRecords() // Bekleyen yerel veri varsa eşitlemeyi başlat
       } else {
         setScreen("auth")
       }
@@ -150,8 +154,7 @@ export default function Page() {
       inspectionDate,
       itemsWithPhotos,
       status,
-      activeRecordId || undefined,
-      activeRecordCreatedAt || undefined
+      activeRecordId || undefined
     )
 
     alert(status === "completed" ? "✅ Denetim başarıyla tamamlandı!" : "✅ Denetim taslak olarak kaydedildi!")
@@ -167,7 +170,6 @@ export default function Page() {
     setInspectionDate("")
     setTab("checklist")
     setActiveRecordId(null)
-    setActiveRecordCreatedAt(null)
   }
 
   function handleResumeRecord(record: any) {
@@ -189,7 +191,6 @@ export default function Page() {
     setPhotoMap(newPhotoMap)
 
     setActiveRecordId(record.id)
-    setActiveRecordCreatedAt(record.createdAt || null)
     setScreen("inspection")
   }
 
@@ -201,7 +202,6 @@ export default function Page() {
     )
   }
 
-  // Auth Screen
   if (screen === "auth") {
     return (
       <AuthScreen
@@ -213,7 +213,6 @@ export default function Page() {
     )
   }
 
-  // History Screen
   if (screen === "history" && currentUser) {
     return (
       <HistoryScreen
@@ -226,13 +225,13 @@ export default function Page() {
     )
   }
 
-  // Inspection Screen
   return (
     <div className="min-h-dvh bg-background pb-28">
       {/* Main App Layout (Hidden during print) */}
       <div className="print:hidden">
         <AppBar onHistoryClick={() => setScreen("history")} onLogout={() => setScreen("auth")} />
-        {/* İNTERNET BAĞLANTI DURUM BARLARI */}
+
+        {/* ANLIK BAĞLANTI UYARI BARLARI */}
         {!isOnline ? (
           <div className="bg-status-observation text-white text-center py-2 px-4 text-xs font-semibold flex items-center justify-center gap-2 animate-pulse sticky top-0 z-50 shadow-md">
             <WifiOff className="size-4" />
@@ -244,6 +243,7 @@ export default function Page() {
             Cihaz Çevrimiçi. Veriler Bulutla Eşitleniyor...
           </div>
         )}
+
         <main className="mx-auto flex max-w-2xl flex-col gap-5 px-4 py-5">
           <VesselDetails
             vesselName={vesselName}
