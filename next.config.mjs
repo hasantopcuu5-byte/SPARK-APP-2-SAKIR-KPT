@@ -1,8 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Cloudflare'e projenin statik dosyalar olarak derlenmesini söyler
-  output: 'export', 
-  
+  output: 'standalone',  // 'export' yerine bu
+
   allowedDevOrigins: ["10.30.0.156", "localhost"],
   typescript: {
     ignoreBuildErrors: true,
