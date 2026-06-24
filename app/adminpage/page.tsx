@@ -1,10 +1,10 @@
 "use client";
+
 export const runtime = 'edge';
 
 import dynamic from "next/dynamic";
 
-// Uygulamayı sadece Client tarafında (tarayıcıda) çalışmaya zorluyoruz. 
-// "ssr: false" kodu Cloudflare Edge'de çalışmayı tamamen iptal eder.
+// Uygulamayı sadece Client tarafında (tarayıcıda) çalışmaya zorluyoruz (SSR Kapalı)
 const ClientApp = dynamic(() => import("./client-page"), {
   ssr: false,
   loading: () => (
