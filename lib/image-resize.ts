@@ -17,7 +17,7 @@ export async function resizeImageToDataUrl(
 
   try {
     const compressedFile = await imageCompression(file, {
-      maxSizeMB: 0.2, // ~200KB
+      maxSizeMB: 0.08, // ~80KB
       maxWidthOrHeight: Math.max(maxWidth, maxHeight),
       useWebWorker: true,
       initialQuality: quality
