@@ -252,12 +252,26 @@ export async function fetchGlobalInspectionRecords(): Promise<InspectionRecord[]
       const deletedIds: string[] = (await get(STORAGE_KEYS.DELETED_IDS)) || []
 
       const localRecords = await getInspectionRecords()
+      
+      const merged = records.map(firestoreRecord => {
+        const localRecord = localRecords.find(r => r.id === firestoreRecord.id)
+        if (localRecord) {
+          const localTime = new Date(localRecord.updatedAt).getTime()
+          const firestoreTime = new Date(firestoreRecord.updatedAt).getTime()
+          // If local record is newer (e.g., has unsynced photos), keep local
+          if (localTime > firestoreTime) {
+            return localRecord
+          }
+        }
+        return firestoreRecord
+      })
+
       const firestoreIds = new Set(records.map(r => r.id))
       const offlineOnly = localRecords.filter(r => !firestoreIds.has(r.id) && !deletedIds.includes(r.id))
 
-      const merged = [...records, ...offlineOnly].filter(r => !deletedIds.includes(r.id))
-      await set(STORAGE_KEYS.INSPECTION_RECORDS, merged)
-      return merged
+      const finalRecords = [...merged, ...offlineOnly].filter(r => !deletedIds.includes(r.id))
+      await set(STORAGE_KEYS.INSPECTION_RECORDS, finalRecords)
+      return finalRecords
     }
 
     return records;
