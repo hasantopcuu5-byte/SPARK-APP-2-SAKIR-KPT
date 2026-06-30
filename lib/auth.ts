@@ -96,16 +96,36 @@ async function uploadRecordPhotosToStorage(record: InspectionRecord): Promise<In
     const updatedPhotos = await Promise.all(item.photos.map(async (photo: string, index: number) => {
       if (photo.startsWith("data:image/")) {
         try {
-          const fileRef = ref(storage, `inspections/${record.id}/item-${item.id}-${index}-${Date.now()}.jpg`);
-          await uploadString(fileRef, photo, 'data_url');
-          const downloadUrl = await getDownloadURL(fileRef);
-          return downloadUrl;
+          const base64Data = photo.split(',')[1];
+          const apiKey = process.env.NEXT_PUBLIC_IMGBB_API_KEY;
+          
+          if (!apiKey) {
+            console.error("ImgBB API anahtarı bulunamadı (.env.local kontrol edin).");
+            return photo; // Hata durumunda base64'ü koru
+          }
+
+          const formData = new FormData();
+          formData.append("image", base64Data);
+
+          const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+            method: "POST",
+            body: formData,
+          });
+
+          const data = await response.json();
+          
+          if (data && data.success) {
+            return data.data.url; // Başarılıysa URL döndür
+          } else {
+            console.error("ImgBB Yükleme Hatası:", data);
+            return photo;
+          }
         } catch (error) {
           console.error("Fotoğraf buluta yüklenirken hata oluştu:", error);
           return photo;
         }
       }
-      return photo;
+      return photo; // Zaten URL ise dokunma
     }));
 
     return { ...item, photos: updatedPhotos };
@@ -215,18 +235,28 @@ export async function saveInspectionRecord(
 
   if (typeof window !== "undefined" && navigator.onLine) {
     try {
-      const fullyUploadedRecord = await uploadRecordPhotosToStorage(newRecord);
-      const records = await getInspectionRecords()
+      // 15 saniyelik zaman aşımı mekanizması
+      const uploadPromise = async () => {
+        const fullyUploadedRecord = await uploadRecordPhotosToStorage(newRecord);
+        const records = await getInspectionRecords()
 
-      const idx = records.findIndex(r => r.id === id)
-      if (idx >= 0) {
-        records[idx] = fullyUploadedRecord;
-        await set(STORAGE_KEYS.INSPECTION_RECORDS, records);
-        await setDoc(doc(db, "inspection_records", id), fullyUploadedRecord);
-      } else {
-        console.log("⚠️ Kayıt silindiği için Firestore'a yazılmadı.");
-        try { await deleteDoc(doc(db, "inspection_records", id)) } catch (_) { }
-      }
+        const idx = records.findIndex(r => r.id === id)
+        if (idx >= 0) {
+          records[idx] = fullyUploadedRecord;
+          await set(STORAGE_KEYS.INSPECTION_RECORDS, records);
+          await setDoc(doc(db, "inspection_records", id), fullyUploadedRecord);
+        } else {
+          console.log("⚠️ Kayıt silindiği için Firestore'a yazılmadı.");
+          try { await deleteDoc(doc(db, "inspection_records", id)) } catch (_) { }
+        }
+      };
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Buluta yükleme zaman aşımına uğradı. Firebase bağlantısı zayıf veya yanıt vermiyor.")), 15000)
+      );
+
+      await Promise.race([uploadPromise(), timeoutPromise]);
+
     } catch (e) {
       console.error("Bulut kaydı hatası:", e);
       return { record: newRecord, cloudSuccess: false, error: e };
