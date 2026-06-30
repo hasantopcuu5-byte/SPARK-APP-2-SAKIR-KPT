@@ -11,7 +11,7 @@ export function BottomNav({
   onPdf: () => void
 }) {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/20 bg-navy/80 backdrop-blur-xl backdrop-saturate-150">
+    <nav className="sticky inset-x-0 bottom-0 z-40 border-t border-white/20 bg-navy/80 backdrop-blur-xl backdrop-saturate-150 shadow-[0_-8px_30px_rgba(0,0,0,0.12)]">
       <div
         className="mx-auto flex max-w-2xl items-center gap-2 px-4 py-3"
         style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
