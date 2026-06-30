@@ -49,6 +49,7 @@ export const STORAGE_KEYS = {
   CURRENT_USER: "spark_current_user",
   INSPECTION_RECORDS: "spark_inspection_records",
   DELETED_IDS: "spark_deleted_record_ids",
+  SYNCED_IDS: "spark_synced_record_ids",
 }
 
 // Yerel Kayıtları Getiren Yardımcı Fonksiyon
@@ -191,7 +192,7 @@ export async function saveInspectionRecord(
   items: any[],
   status: "completed" | "in_progress" = "completed",
   recordId?: string
-): Promise<InspectionRecord> {
+): Promise<{ record: InspectionRecord; cloudSuccess: boolean; error?: any }> {
   const id = recordId || `inspection-${Date.now()}`;
 
   let newRecord: InspectionRecord = {
@@ -213,28 +214,26 @@ export async function saveInspectionRecord(
   }
 
   if (typeof window !== "undefined" && navigator.onLine) {
-    (async () => {
-      try {
-        const fullyUploadedRecord = await uploadRecordPhotosToStorage(newRecord);
-        const records = await getInspectionRecords()
+    try {
+      const fullyUploadedRecord = await uploadRecordPhotosToStorage(newRecord);
+      const records = await getInspectionRecords()
 
-        // 🌟 KRİTİK KONTROL: Eğer kullanıcı bu süreçte kaydı yerelden sildiyse (idx < 0), buluta yazmayı iptal et!
-        const idx = records.findIndex(r => r.id === id)
-        if (idx >= 0) {
-          records[idx] = fullyUploadedRecord;
-          await set(STORAGE_KEYS.INSPECTION_RECORDS, records);
-          await setDoc(doc(db, "inspection_records", id), fullyUploadedRecord);
-        } else {
-          console.log("⚠️ Kayıt silindiği için Firestore'a yazılmadı, Firestore'dan da temizleniyor.");
-          try { await deleteDoc(doc(db, "inspection_records", id)) } catch (_) { }
-        }
-      } catch (e) {
-        console.error("Arka plan bulut kaydı hatası:", e);
+      const idx = records.findIndex(r => r.id === id)
+      if (idx >= 0) {
+        records[idx] = fullyUploadedRecord;
+        await set(STORAGE_KEYS.INSPECTION_RECORDS, records);
+        await setDoc(doc(db, "inspection_records", id), fullyUploadedRecord);
+      } else {
+        console.log("⚠️ Kayıt silindiği için Firestore'a yazılmadı.");
+        try { await deleteDoc(doc(db, "inspection_records", id)) } catch (_) { }
       }
-    })();
+    } catch (e) {
+      console.error("Bulut kaydı hatası:", e);
+      return { record: newRecord, cloudSuccess: false, error: e };
+    }
   }
 
-  return newRecord
+  return { record: newRecord, cloudSuccess: true };
 }
 
 export async function fetchGlobalInspectionRecords(): Promise<InspectionRecord[]> {
@@ -250,10 +249,13 @@ export async function fetchGlobalInspectionRecords(): Promise<InspectionRecord[]
 
     if (typeof window !== "undefined") {
       const deletedIds: string[] = (await get(STORAGE_KEYS.DELETED_IDS)) || []
+      const syncedIdsArray: string[] = (await get(STORAGE_KEYS.SYNCED_IDS)) || []
+      const syncedIds = new Set(syncedIdsArray)
 
       const localRecords = await getInspectionRecords()
       
       const merged = records.map(firestoreRecord => {
+        syncedIds.add(firestoreRecord.id) // Mark as synced from cloud
         const localRecord = localRecords.find(r => r.id === firestoreRecord.id)
         if (localRecord) {
           const localTime = new Date(localRecord.updatedAt).getTime()
@@ -267,9 +269,24 @@ export async function fetchGlobalInspectionRecords(): Promise<InspectionRecord[]
       })
 
       const firestoreIds = new Set(records.map(r => r.id))
-      const offlineOnly = localRecords.filter(r => !firestoreIds.has(r.id) && !deletedIds.includes(r.id))
+      
+      // Determine which local records to keep.
+      // If a record is not in Firestore, we keep it ONLY IF it was never synced before (new offline record)
+      // If it WAS synced before but is now missing from Firestore, it means it was deleted remotely!
+      const offlineOnly = localRecords.filter(r => {
+        if (firestoreIds.has(r.id)) return false; // Handled in merged
+        if (deletedIds.includes(r.id)) return false; // Deleted locally
+        if (syncedIds.has(r.id)) {
+          // It was synced before, but now missing from Firestore -> Deleted remotely!
+          // We must NOT keep it, otherwise it resurrects.
+          return false; 
+        }
+        return true; // True offline record
+      })
 
       const finalRecords = [...merged, ...offlineOnly].filter(r => !deletedIds.includes(r.id))
+      
+      await set(STORAGE_KEYS.SYNCED_IDS, Array.from(syncedIds))
       await set(STORAGE_KEYS.INSPECTION_RECORDS, finalRecords)
       return finalRecords
     }

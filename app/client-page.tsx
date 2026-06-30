@@ -146,15 +146,18 @@ export default function ClientPage() {
         setIsSaveModalOpen(true)
     }
 
+    const [isSaving, setIsSaving] = useState(false)
+
     async function confirmSaveInspection(status: "completed" | "in_progress") {
         setIsSaveModalOpen(false)
+        setIsSaving(true)
 
         const itemsWithPhotos = items.map((item) => ({
             ...item,
             photos: photoMap[item.id] ?? [],
         }))
 
-        await saveInspectionRecord(
+        const { cloudSuccess, error } = await saveInspectionRecord(
             currentUser!.id,
             currentUser!.username,
             vesselName,
@@ -165,7 +168,13 @@ export default function ClientPage() {
             activeRecordId || undefined
         )
 
-        alert(status === "completed" ? "✅ Denetim başarıyla tamamlandı!" : "✅ Denetim taslak olarak kaydedildi!")
+        setIsSaving(false)
+
+        if (cloudSuccess) {
+            alert(status === "completed" ? "✅ Denetim başarıyla tamamlandı ve buluta kaydedildi!" : "✅ Denetim taslak olarak kaydedildi!")
+        } else {
+            alert("⚠️ Denetim cihazınıza kaydedildi ANCAK buluta yüklenirken bir hata oluştu. Fotoğrafların boyutu büyük olabilir veya bağlantı sorunu olabilir. Daha sonra tekrar deneyin.")
+        }
 
         setItems(initialItems)
         setPhotoMap({})
@@ -353,6 +362,14 @@ export default function ClientPage() {
                             </button>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {isSaving && (
+                <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/70 backdrop-blur-md">
+                    <div className="size-12 animate-spin rounded-full border-4 border-gold border-t-transparent mb-4" />
+                    <p className="text-white font-medium text-lg">Buluta Kaydediliyor...</p>
+                    <p className="text-white/70 text-sm mt-2 max-w-xs text-center">Lütfen fotoğraflar yüklenirken sayfayı kapatmayın veya yenilemeyin.</p>
                 </div>
             )}
         </div>
