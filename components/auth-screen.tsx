@@ -42,7 +42,7 @@ export function AuthScreen({ onAuthSuccess }: { onAuthSuccess: (user: User) => v
 
     // SİSTEMİN AKILLI YÖNLENDİRMESİ
     if (user.role === "admin") {
-      router.push("/adminpage") // Adminse admin paneline at
+      router.push("/admin") // Yönlendirme rotasını /admin olarak düzelttik
     } else {
       onAuthSuccess(user) // Enspektörse uygulamayı başlat
     }

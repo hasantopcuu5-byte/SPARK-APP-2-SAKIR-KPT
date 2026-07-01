@@ -52,7 +52,7 @@ export const DEFAULT_INSPECTORS: User[] = [
 ]
 
 export const STORAGE_KEYS = {
-  USERS: "spark_users",
+  USERS: "spark_users_v2",
   CURRENT_USER: "spark_current_user",
   INSPECTION_RECORDS: "spark_inspection_records",
   DELETED_IDS: "spark_deleted_record_ids",
