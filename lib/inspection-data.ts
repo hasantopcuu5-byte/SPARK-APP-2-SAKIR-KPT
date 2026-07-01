@@ -14,6 +14,7 @@ export interface ChecklistItem {
   photos: string[]
   department?: string
   crew?: string
+  tip?: string
 }
 
 export const SECTIONS = Array.from(
@@ -43,5 +44,6 @@ export const initialItems: ChecklistItem[] = CHECKLIST_ITEMS.map((item, index) =
     photos: [],
     department: item.department || "",
     crew: item.crew || "",
+    tip: (item as any).tip || "",
   }
 })

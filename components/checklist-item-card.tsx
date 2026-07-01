@@ -106,7 +106,19 @@ export function ChecklistItemCard({
             {item.section}
           </Badge>
         </div>
-        <span className={cn("mt-1 size-2.5 shrink-0 rounded-full", statusDot[item.status])} aria-hidden />
+        <div className="flex items-center gap-2 mt-1">
+          {item.tip && (
+            <button
+              type="button"
+              onClick={() => alert(item.tip)}
+              className="flex size-4 items-center justify-center rounded-full bg-yellow-400 text-[11px] font-bold text-yellow-950 transition-colors hover:bg-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-1"
+              title="View Tip"
+            >
+              !
+            </button>
+          )}
+          <span className={cn("size-2.5 shrink-0 rounded-full", statusDot[item.status])} aria-hidden />
+        </div>
       </div>
 
       <p className="text-pretty text-[15px] font-medium leading-relaxed text-foreground">{item.question}</p>
