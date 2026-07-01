@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef } from "react"
+import { useRef, useState } from "react" // useState eklendi
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
@@ -55,6 +55,7 @@ export function ChecklistItemCard({
   onUploadingChange: (id: number, uploading: boolean) => void
 }) {
   const blobUrlsRef = useRef<string[]>([])
+  const [isTipOpen, setIsTipOpen] = useState(false) // Popup kontrolü için state
   const canAddMore = photos.length < MAX_PHOTOS_PER_ITEM
 
   async function handleFileChange(files: FileList) {
@@ -110,7 +111,7 @@ export function ChecklistItemCard({
           {item.tip && (
             <button
               type="button"
-              onClick={() => alert(item.tip)}
+              onClick={() => setIsTipOpen(true)} // Tıklanınca state'i açıyoruz
               className="flex size-4 items-center justify-center rounded-full bg-yellow-400 text-[11px] font-bold text-yellow-950 transition-colors hover:bg-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-1"
               title="View Tip"
             >
@@ -219,6 +220,48 @@ export function ChecklistItemCard({
           )}
         </div>
       </div>
+
+      {/* Standart Kare Boyutunda ve Scroll Özellikli Yeni Tip Popup */}
+      {isTipOpen && item.tip && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={() => setIsTipOpen(false)}
+        >
+          <div
+            className="bg-background border rounded-2xl p-5 w-[320px] h-[320px] flex flex-col shadow-2xl border border-border animate-in zoom-in-95 duration-200 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Üst Başlık Kısmı */}
+            <div className="flex items-center justify-between border-b pb-2 mb-2 shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="flex size-5 items-center justify-center rounded-full bg-yellow-400 text-[11px] font-bold text-yellow-950">!</span>
+                <h3 className="text-sm font-bold text-foreground">Tips</h3>
+              </div>
+              <button
+                onClick={() => setIsTipOpen(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-full hover:bg-secondary"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            {/* Kaydırılabilir İçerik Alanı */}
+            <div className="flex-1 overflow-y-auto text-xs text-foreground/90 leading-relaxed pr-1 whitespace-pre-wrap scrollbar-thin">
+              {item.tip}
+            </div>
+
+            {/* Alt Kapat Butonu */}
+            <div className="pt-2 mt-2 border-t shrink-0">
+              <button
+                onClick={() => setIsTipOpen(false)}
+                className="w-full py-2 rounded-xl bg-secondary text-secondary-foreground font-semibold hover:bg-secondary/80 transition-colors text-xs"
+              >
+                Kapat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   )
 }
