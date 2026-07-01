@@ -5,32 +5,22 @@ import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { LogIn, UserPlus, Eye, EyeOff } from "lucide-react"
-import { getUserByUsername, setCurrentUser, initializeUsers } from "@/lib/auth"
+import { LogIn, Eye, EyeOff } from "lucide-react"
+// HATA BURADAYDI: getUserByUsername yerine verifyUser ekledik
+import { verifyUser, setCurrentUser, initializeUsers } from "@/lib/auth"
 import type { User } from "@/lib/auth"
 
 export function AuthScreen({ onAuthSuccess }: { onAuthSuccess: (user: User) => void }) {
   const router = useRouter()
-  const [tab, setTab] = useState<"login" | "admin">("login")
-
-  // Kullanıcı Girişi için
   const [loginUsername, setLoginUsername] = useState("")
   const [loginPassword, setLoginPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-
-  // Admin Girişi için
-  const [adminUsername, setAdminUsername] = useState("")
-  const [adminPassword, setAdminPassword] = useState("")
-  const [showAdminPassword, setShowAdminPassword] = useState(false)
-
   const [error, setError] = useState("")
 
   useEffect(() => {
     initializeUsers()
   }, [])
 
-  // Kullanıcı Giriş İşlemi (IndexedDB için ASENKRON hale getirildi)
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
@@ -40,27 +30,21 @@ export function AuthScreen({ onAuthSuccess }: { onAuthSuccess: (user: User) => v
       return
     }
 
-    // Promise yapısını çözmek için await eklendi
-    const user = await getUserByUsername(loginUsername)
-    if (!user || user.password !== loginPassword) {
+    // Yeni güvenli (kriptolu) doğrulama fonksiyonumuzu kullanıyoruz
+    const user = await verifyUser(loginUsername, loginPassword)
+
+    if (!user) {
       setError("Hatalı kullanıcı adı veya şifre")
       return
     }
 
-    // Promise yapısını çözmek için await eklendi
     await setCurrentUser(user)
-    onAuthSuccess(user)
-  }
 
-  // Admin Giriş İşlemi
-  const handleAdminLogin = (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-
-    if (adminUsername === "admin" && adminPassword === "1234") {
-      router.push("/adminpage")
+    // SİSTEMİN AKILLI YÖNLENDİRMESİ
+    if (user.role === "admin") {
+      router.push("/adminpage") // Adminse admin paneline at
     } else {
-      setError("Hatalı admin kullanıcı adı veya şifre")
+      onAuthSuccess(user) // Enspektörse uygulamayı başlat
     }
   }
 
@@ -72,108 +56,52 @@ export function AuthScreen({ onAuthSuccess }: { onAuthSuccess: (user: User) => v
           <p className="text-sm text-muted-foreground">Gemi Denetim Sistemi</p>
         </div>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as "login" | "admin")} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 rounded-none border-b bg-transparent p-0">
-            <TabsTrigger
-              value="login"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-gold data-[state=active]:bg-transparent"
-            >
-              <LogIn className="mr-2 size-4" />
-              Kullanıcı Girişi
-            </TabsTrigger>
-            <TabsTrigger
-              value="admin"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-gold data-[state=active]:bg-transparent"
-            >
-              <UserPlus className="mr-2 size-4" />
-              Admin Girişi
-            </TabsTrigger>
-          </TabsList>
+        <div className="p-6">
+          <div className="mb-6 flex items-center text-lg font-semibold text-navy">
+            <LogIn className="mr-2 size-5" />
+            Sisteme Giriş Yapın
+          </div>
 
-          <TabsContent value="login" className="gap-4 p-6">
-            <form onSubmit={handleLogin} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-foreground">Kullanıcı Adı</label>
+          <form onSubmit={handleLogin} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-foreground">Kullanıcı Adı</label>
+              <Input
+                type="text"
+                value={loginUsername}
+                onChange={(e) => setLoginUsername(e.target.value)}
+                placeholder="Kullanıcı adınızı girin"
+                className="h-11 rounded-lg bg-secondary/40"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-foreground">Şifre</label>
+              <div className="relative">
                 <Input
-                  type="text"
-                  value={loginUsername}
-                  onChange={(e) => setLoginUsername(e.target.value)}
-                  placeholder="Kullanıcı adınızı girin"
-                  className="h-11 rounded-lg bg-secondary/40"
+                  type={showPassword ? "text" : "password"}
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="h-11 rounded-lg bg-secondary/40 pr-10"
                 />
+                <button
+                  type="button"
+                  onMouseDown={() => setShowPassword(true)}
+                  onMouseUp={() => setShowPassword(false)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
               </div>
+            </div>
 
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-foreground">Şifre</label>
-                <div className="relative">
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="h-11 rounded-lg bg-secondary/40 pr-10"
-                  />
-                  <button
-                    type="button"
-                    onMouseDown={() => setShowPassword(true)}
-                    onMouseUp={() => setShowPassword(false)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                  </button>
-                </div>
-              </div>
+            {error && <p className="text-sm font-medium text-status-deficiency">{error}</p>}
 
-              {error && tab === "login" && <p className="text-sm font-medium text-status-deficiency">{error}</p>}
-
-              <Button type="submit" className="h-11 rounded-lg bg-navy font-semibold text-white hover:bg-navy/90">
-                Giriş Yap
-              </Button>
-            </form>
-          </TabsContent>
-
-          <TabsContent value="admin" className="gap-4 p-6">
-            <form onSubmit={handleAdminLogin} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-foreground">Kullanıcı Adı</label>
-                <Input
-                  type="text"
-                  value={adminUsername}
-                  onChange={(e) => setAdminUsername(e.target.value)}
-                  placeholder="Admin kullanıcı adı"
-                  className="h-11 rounded-lg bg-secondary/40"
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-foreground">Şifre</label>
-                <div className="relative">
-                  <Input
-                    type={showAdminPassword ? "text" : "password"}
-                    value={adminPassword}
-                    onChange={(e) => setAdminPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="h-11 rounded-lg bg-secondary/40 pr-10"
-                  />
-                  <button
-                    type="button"
-                    onMouseDown={() => setShowAdminPassword(true)}
-                    onMouseUp={() => setShowAdminPassword(false)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showAdminPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {error && tab === "admin" && <p className="text-sm font-medium text-status-deficiency">{error}</p>}
-
-              <Button type="submit" className="h-11 rounded-lg bg-navy font-semibold text-white hover:bg-navy/90">
-                Giriş Yap
-              </Button>
-            </form>
-          </TabsContent>
-        </Tabs>
+            <Button type="submit" className="h-11 mt-2 rounded-lg bg-navy font-semibold text-white hover:bg-navy/90">
+              Giriş Yap
+            </Button>
+          </form>
+        </div>
       </Card>
     </div>
   )

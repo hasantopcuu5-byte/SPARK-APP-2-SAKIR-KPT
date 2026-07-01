@@ -298,6 +298,10 @@ export function HistoryScreen({ user, onBack, onResume }: { user: User; onBack: 
                         <p className="text-sm text-muted-foreground">
                           Kaptan: <span className="font-medium text-foreground">{record.captainName}</span>
                         </p>
+                        <p className="text-sm text-muted-foreground">
+                          <span className="font-semibold text-foreground">Denetimi Yapan Enspektör:</span>{" "}
+                          {record.username === "admin" ? "Admin" : record.username.split('.').map(name => name.charAt(0).toUpperCase() + name.slice(1)).join(' ')}
+                        </p>
                       </div>
                       <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                         <Badge className={record.status === "in_progress" ? "bg-status-observation/90 text-white" : "bg-status-ok/20 text-status-ok"}>
